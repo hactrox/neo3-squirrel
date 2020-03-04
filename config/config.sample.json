@@ -1,0 +1,15 @@
+{
+    "user": "USER",
+    "password": "PASSWORD",
+    "hostname": "HOSTNAME",
+    "port": "3306",
+    "database": "DATABASE",
+
+    "debug": false,
+
+    "rpcs": [
+        "RPC1"
+    ],
+
+    "label": "mainnet"
+}
