@@ -13,3 +13,12 @@
 
 # Dependency directories (remove the comment below to include it)
 # vendor/
+
+# bin files
+neo3-squirrel
+
+# log directories and files
+logs
+
+# configuration directories and files
+/config/config.json
