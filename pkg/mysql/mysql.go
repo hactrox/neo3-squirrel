@@ -3,8 +3,8 @@ package mysql
 import (
 	"database/sql"
 	"neo3-squirrel/config"
-	"neo3-squirrel/log"
 	"neo3-squirrel/pkg/reconnector"
+	"neo3-squirrel/util/log"
 	"strings"
 	"time"
 

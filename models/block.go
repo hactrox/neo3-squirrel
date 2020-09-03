@@ -10,6 +10,7 @@ type Block struct {
 	Version              uint
 	PreviousBlockHash    string
 	MerkleRoot           string
+	Txs                  uint
 	Time                 uint64
 	Index                uint
 	NextConsensus        string
@@ -31,6 +32,7 @@ func ParseBlocks(rawBlocks []*rpc.Block) []*Block {
 			Version:              rawBlock.Version,
 			PreviousBlockHash:    rawBlock.PreviousBlockHash,
 			MerkleRoot:           rawBlock.MerkleRoot,
+			Txs:                  uint(len(rawBlock.Tx)),
 			Time:                 rawBlock.Time,
 			Index:                rawBlock.Index,
 			NextConsensus:        rawBlock.NextConsensus,

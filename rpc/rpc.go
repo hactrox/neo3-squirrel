@@ -4,7 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"neo3-squirrel/log"
+	"neo3-squirrel/util/log"
 	"strings"
 	"time"
 

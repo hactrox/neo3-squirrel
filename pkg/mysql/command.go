@@ -4,8 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"neo3-squirrel/config"
-	"neo3-squirrel/log"
 	"neo3-squirrel/util/color"
+	"neo3-squirrel/util/log"
 	"strings"
 )
 
@@ -131,7 +131,7 @@ func (db *DB) wrappedQuery(qFunc func() (interface{}, error)) (interface{}, erro
 func Compose(query []string) (sql string) {
 	sql = strings.Join(query, " ")
 
-	if config.DebugMode() {
+	if config.DebugSQLMode() {
 		coloredSQL := "\n" + color.BLightGreen(strings.Join(query, "\n"))
 		log.Debug(coloredSQL)
 	}

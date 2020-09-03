@@ -5,10 +5,10 @@ import (
 	"math/big"
 	"neo3-squirrel/config"
 	"neo3-squirrel/db"
-	"neo3-squirrel/log"
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
 	"neo3-squirrel/util/color"
+	"neo3-squirrel/util/log"
 	"neo3-squirrel/util/progress"
 	"neo3-squirrel/util/timeutil"
 	"time"
@@ -48,7 +48,7 @@ func fetchBlock() {
 
 	defer func() {
 		const hint = "Worker for block data persistence terminated"
-		log.Info(color.BYellowf("%s. Remaining workers=%d\n", hint, worker.num()))
+		log.Info(color.BGreenf("%s. Remaining workers=%d", hint, worker.num()))
 	}()
 
 	// TODO: mail alert

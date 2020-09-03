@@ -148,6 +148,12 @@ func BGreen(txt string) string {
 	return Render(green, bold, txt)
 }
 
+// BGreenf returns bold green
+func BGreenf(format string, a ...interface{}) string {
+	msg := fmt.Sprintf(format, a...)
+	return BGreen(msg)
+}
+
 // BYellow returns bold yellow
 func BYellow(txt string) string {
 	return Render(yellow, bold, txt)

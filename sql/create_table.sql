@@ -17,6 +17,7 @@ CREATE TABLE IF NOT EXISTS `block`
     `version` INT UNSIGNED NOT NULL,
     `previous_block_hash` CHAR(66) NOT NULL,
     `merkleroot` CHAR(66) NOT NULL,
+    `txs` INT UNSIGNED NOT NULL,
     `time` BIGINT UNSIGNED NOT NULL,
     `index` INT UNSIGNED NOT NULL,
     `nextconsensus` CHAR(66) NOT NULL,

@@ -3,8 +3,8 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"neo3-squirrel/log"
 	"neo3-squirrel/pkg/mysql"
+	"neo3-squirrel/util/log"
 	"os"
 )
 

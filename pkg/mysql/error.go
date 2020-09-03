@@ -3,8 +3,8 @@ package mysql
 import (
 	"database/sql"
 	"fmt"
-	"neo3-squirrel/log"
 	"neo3-squirrel/util/color"
+	"neo3-squirrel/util/log"
 	"strings"
 
 	"github.com/go-sql-driver/mysql"

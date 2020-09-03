@@ -21,7 +21,8 @@ type config struct {
 	Database string
 
 	// Debug indicates if in debug mode.
-	Debug bool
+	Debug    bool
+	DebugSQL bool
 
 	// Label is used as prefix in log output, e.g., mainnet, testnet.
 	Label string
@@ -57,6 +58,11 @@ func Load(display bool) {
 // DebugMode tells if running in debug mode.
 func DebugMode() bool {
 	return cfg.Debug
+}
+
+// DebugSQLMode tells if shows sql statement.
+func DebugSQLMode() bool {
+	return cfg.DebugSQL
 }
 
 // GetLabel returns custome label as part of the log output prefix.

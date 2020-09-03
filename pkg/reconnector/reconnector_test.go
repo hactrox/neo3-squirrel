@@ -2,7 +2,7 @@ package reconnector
 
 import (
 	"errors"
-	"neo3-squirrel/log"
+	"neo3-squirrel/util/log"
 	"os"
 	"sync/atomic"
 	"testing"

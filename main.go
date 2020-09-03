@@ -5,8 +5,8 @@ import (
 	"fmt"
 	"neo3-squirrel/config"
 	"neo3-squirrel/db"
-	"neo3-squirrel/log"
 	"neo3-squirrel/tasks"
+	"neo3-squirrel/util/log"
 	"net/http"
 )
 

@@ -3,9 +3,9 @@ package db
 import (
 	"database/sql"
 	"fmt"
-	"neo3-squirrel/log"
 	"neo3-squirrel/models"
 	"neo3-squirrel/pkg/mysql"
+	"neo3-squirrel/util/log"
 	"strings"
 )
 
@@ -59,6 +59,7 @@ func generateInsertCmdForBlocks(blocks []*models.Block) string {
 		"`version`",
 		"`previous_block_hash`",
 		"`merkleroot`",
+		"`txs`",
 		"`time`",
 		"`index`",
 		"`nextconsensus`",
@@ -71,12 +72,13 @@ func generateInsertCmdForBlocks(blocks []*models.Block) string {
 	strBuilder.WriteString(fmt.Sprintf("INSERT INTO `block` (%s) VALUES ", strings.Join(columns, ", ")))
 
 	for _, b := range blocks {
-		strBuilder.WriteString(fmt.Sprintf("('%s', %d, %d, '%s', '%s', %d, %d, '%s', %d, '%s', '%s'),",
+		strBuilder.WriteString(fmt.Sprintf("('%s', %d, %d, '%s', '%s', %d, %d, %d, '%s', %d, '%s', '%s'),",
 			b.Hash,
 			b.Size,
 			b.Version,
 			b.PreviousBlockHash,
 			b.MerkleRoot,
+			b.Txs,
 			b.Time,
 			b.Index,
 			b.NextConsensus,

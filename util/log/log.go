@@ -37,6 +37,7 @@ type Logger struct {
 var (
 	logger  Logger
 	logPath = "./logs"
+	debug   bool
 )
 
 // Init creates global logger instances.
@@ -46,15 +47,17 @@ func Init(debugMode bool) {
 		panic(err)
 	}
 
+	debug = debugMode
+
 	logger = Logger{
-		Debug: newLogger(logNameDebug, logrus.DebugLevel, debugMode),
-		Info:  newLogger(logNameInfo, logrus.InfoLevel, debugMode),
-		Warn:  newLogger(logNameWarning, logrus.WarnLevel, debugMode),
-		Error: newLogger(logNameError, logrus.ErrorLevel, debugMode),
+		Debug: newLogger(logNameDebug, logrus.DebugLevel),
+		Info:  newLogger(logNameInfo, logrus.InfoLevel),
+		Warn:  newLogger(logNameWarning, logrus.WarnLevel),
+		Error: newLogger(logNameError, logrus.ErrorLevel),
 	}
 }
 
-func newLogger(fileName string, level logrus.Level, debugMode bool) *logrus.Logger {
+func newLogger(fileName string, level logrus.Level) *logrus.Logger {
 	fileName = path.Join(logPath, fileName)
 
 	l := &logrus.Logger{
@@ -64,14 +67,15 @@ func newLogger(fileName string, level logrus.Level, debugMode bool) *logrus.Logg
 		Hooks:     nil,
 	}
 
-	if debugMode || level <= logrus.ErrorLevel {
+	if debug {
 		l.SetOutput(io.MultiWriter(os.Stdout, newLogWriter(fileName)))
+		return l
+	}
+
+	if level >= logrus.DebugLevel {
+		l.SetOutput(ioutil.Discard)
 	} else {
-		if level >= logrus.DebugLevel {
-			l.SetOutput(ioutil.Discard)
-		} else {
-			l.SetOutput(newLogWriter(fileName))
-		}
+		l.SetOutput(io.MultiWriter(os.Stdout, newLogWriter(fileName)))
 	}
 
 	return l
@@ -191,7 +195,9 @@ func logHandler(format string, v []interface{}) (msg string) {
 		return format
 	}
 
-	msg = fmt.Sprintf("[%s] ", fileInfo())
+	if debug {
+		msg = fmt.Sprintf("[%s] ", fileInfo())
+	}
 
 	for i := 0; i < len(v); i++ {
 		v[i] = extract(v[i])
