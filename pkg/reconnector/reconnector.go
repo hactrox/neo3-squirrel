@@ -5,6 +5,7 @@ import (
 	"math"
 	"math/rand"
 	"neo3-squirrel/log"
+	"neo3-squirrel/util/color"
 	"sync"
 	"sync/atomic"
 	"time"
@@ -44,7 +45,8 @@ func Reconnect(target string, f reconnFunc) {
 
 	defer atomic.StoreUint32(lockerAddr, 0)
 
-	log.Warnf("%s connection was lost, try reconnecting...", target)
+	msg := fmt.Sprintf("%s connection was lost, try reconnecting...", target)
+	log.Warnf(color.BYellow(msg))
 	retryCnt := 0
 
 	for {
@@ -55,8 +57,9 @@ func Reconnect(target string, f reconnFunc) {
 
 		delay := int64(math.Pow(2, float64((retryCnt-1)%4)))
 
-		log.Warnf("[%s][retry=%d] Waiting for %d seconds before retry db connection",
+		msg := fmt.Sprintf("[%s][retry=%d] Waiting for %d seconds before retry db connection",
 			target, retryCnt, delay)
+		log.Warnf(color.BYellow(msg))
 		time.Sleep(time.Duration(delay) * time.Second)
 	}
 }

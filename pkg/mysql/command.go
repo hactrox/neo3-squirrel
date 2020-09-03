@@ -3,7 +3,9 @@ package mysql
 import (
 	"database/sql"
 	"fmt"
+	"neo3-squirrel/config"
 	"neo3-squirrel/log"
+	"neo3-squirrel/util/color"
 	"strings"
 )
 
@@ -123,4 +125,16 @@ func (db *DB) wrappedQuery(qFunc func() (interface{}, error)) (interface{}, erro
 
 		return re, nil
 	}
+}
+
+// Compose composes raw sql fragments into one query string.
+func Compose(query []string) (sql string) {
+	sql = strings.Join(query, " ")
+
+	if config.DebugMode() {
+		coloredSQL := "\n" + color.BLightGreen(strings.Join(query, "\n"))
+		log.Debug(coloredSQL)
+	}
+
+	return
 }

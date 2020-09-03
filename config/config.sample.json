@@ -11,5 +11,6 @@
         "RPC1"
     ],
 
-    "label": "mainnet"
+    "label": "mainnet",
+    "workers": 3
 }

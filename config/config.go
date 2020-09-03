@@ -28,6 +28,9 @@ type config struct {
 
 	// RPCs are backend NEO-CLI nodes used in JSON-RPC queries.
 	RPCs []string `mapstructure:"rpcs"`
+
+	// Workers sets the number of goroutines that will be created for data processing.
+	Workers int
 }
 
 var cfg config
@@ -64,6 +67,11 @@ func GetLabel() string {
 // GetRPCs returns all rpc urls from config.
 func GetRPCs() []string {
 	return cfg.RPCs
+}
+
+// GetWorkers returns the number of working goroutines.
+func GetWorkers() int {
+	return cfg.Workers
 }
 
 // GetDbConnStr returns db connection string.
@@ -110,6 +118,10 @@ func load(display bool) error {
 func check() error {
 	if err := checkRPCs(); err != nil {
 		return err
+	}
+
+	if cfg.Workers == 0 {
+		return errors.New("workers must be great than 0")
 	}
 
 	return nil

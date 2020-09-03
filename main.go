@@ -4,7 +4,9 @@ import (
 	"flag"
 	"fmt"
 	"neo3-squirrel/config"
+	"neo3-squirrel/db"
 	"neo3-squirrel/log"
+	"neo3-squirrel/tasks"
 	"net/http"
 )
 
@@ -20,10 +22,13 @@ func main() {
 	flag.Parse()
 	config.Load(true)
 	log.Init(config.DebugMode())
+	db.Init()
 
 	if pprofEnabled {
 		enablePProf()
 	}
+
+	tasks.Run()
 
 	select {}
 }
