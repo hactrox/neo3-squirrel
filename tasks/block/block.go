@@ -19,13 +19,13 @@ const bufferSize = 5000
 
 var (
 	// bestRPCHeight util.SafeCounter.
-	prog         = progress.Progress{}
+	prog         = progress.New()
 	buffer       Buffer
 	worker       Worker
 	blockChannel chan *rpc.Block
 )
 
-// StartBlockSyncTask start block sync tasks.
+// StartBlockSyncTask starts block sync tasks.
 func StartBlockSyncTask() {
 	lastBlockHeight := db.GetLastBlockHeight()
 	buffer = NewBuffer(lastBlockHeight)
