@@ -21,6 +21,11 @@ type Progress struct {
 	LastOutputTime time.Time
 }
 
+// New initializes a new progress calculator.
+func New() Progress {
+	return Progress{}
+}
+
 func (progInfo *Progress) updatePercentage(percentage *big.Float) {
 	percentage = new(big.Float).Mul(percentage, big.NewFloat(10000))
 	val, _ := percentage.Int64()
