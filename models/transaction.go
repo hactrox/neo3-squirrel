@@ -15,6 +15,7 @@ type TxBulk struct {
 
 // Transaction db model.
 type Transaction struct {
+	ID              uint
 	BlockIndex      uint
 	BlockTime       uint64
 	Hash            string
