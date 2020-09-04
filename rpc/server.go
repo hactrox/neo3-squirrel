@@ -78,6 +78,12 @@ func TraceBestHeight() {
 	// TODO: mail alert
 	// defer mail.AlertIfErr()
 
+	rpcs := config.GetRPCs()
+	nodes = make(map[string]int)
+	for _, rpc := range rpcs {
+		nodes[rpc] = 0
+	}
+
 	log.Info("Checking all fullnodes...")
 
 	refreshNodesStatus()
@@ -100,6 +106,10 @@ func pickNode(minHeight int) (string, bool) {
 
 	nLock.RLock()
 	defer nLock.RUnlock()
+
+	if len(nodes) == 0 {
+		log.Panic("fullnode rpc address must be set before use")
+	}
 
 	// Suppose all nodes are qualified.
 	candidates := []string{}
@@ -127,10 +137,9 @@ func pickNode(minHeight int) (string, bool) {
 // getHeights gets best height of all fullnodes
 // and returns best height from these nodes.
 func getHeights() map[string]int {
-	rpcs := config.GetRPCs()
-	c := make(chan nodeInfo, len(rpcs))
+	c := make(chan nodeInfo, len(nodes))
 
-	for _, url := range rpcs {
+	for url := range nodes {
 		go func(url string, c chan<- nodeInfo) {
 			height, _ := getHeightFrom(url)
 			c <- nodeInfo{
@@ -142,7 +151,7 @@ func getHeights() map[string]int {
 
 	result := make(map[string]int)
 
-	for range rpcs {
+	for range nodes {
 		s := <-c
 		result[s.url] = s.height
 	}
@@ -185,4 +194,10 @@ func nodeUnavailable(url string) {
 	if _, ok := nodes[url]; ok {
 		nodes[url] = -1
 	}
+}
+
+func setRPCforTest(rpcAddr string) {
+	nodes = make(map[string]int)
+	nodes[rpcAddr] = 0
+	refreshNodesStatus()
 }
