@@ -12,7 +12,6 @@ import (
 type Counter struct {
 	ID         uint
 	BlockIndex int
-	TxPK       uint
 
 	AddrCount uint
 }
@@ -24,7 +23,7 @@ func GetLastBlockHeight() int {
 
 func getCounterInstance() Counter {
 	query := []string{
-		"SELECT `id`, `block_index`, `tx_pk`, `addr_count`",
+		"SELECT `id`, `block_index`, `addr_count`",
 		"FROM `counter`",
 		"WHERE `id` = 1",
 		"LIMIT 1",
@@ -35,7 +34,6 @@ func getCounterInstance() Counter {
 	err := mysql.QueryRow(mysql.Compose(query), nil,
 		&counter.ID,
 		&counter.BlockIndex,
-		&counter.TxPK,
 		&counter.AddrCount,
 	)
 
