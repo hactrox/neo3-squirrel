@@ -9,26 +9,96 @@ import (
 	"strings"
 )
 
-// GetTransactions gets transactions starts from the given
-// primary key(>=) and limits to {limit} records from database.
-func GetTransactions(startPK, limit uint) []*models.Transaction {
-	columns := []string{
-		"`id`",
-		"`block_index`",
-		"`block_time`",
-		"`hash`",
-		"`size`",
-		"`version`",
-		"`nonce`",
-		"`sender`",
-		"`sysfee`",
-		"`netfee`",
-		"`valid_until_block`",
-		"`script`",
+var txColumns = []string{
+	"`id`",
+	"`block_index`",
+	"`block_time`",
+	"`hash`",
+	"`size`",
+	"`version`",
+	"`nonce`",
+	"`sender`",
+	"`sysfee`",
+	"`netfee`",
+	"`valid_until_block`",
+	"`script`",
+}
+
+// GetLastTxForApplicationLogTask returns the last
+// primary key of the inserted application log record.
+func GetLastTxForApplicationLogTask() *models.Transaction {
+	subQuery := []string{
+		"SELECT `txid`",
+		"FROM `applicationlog`",
+		"ORDER BY `id` DESC",
+		"LIMIT 1",
 	}
 
 	query := []string{
-		fmt.Sprintf("SELECT %s", strings.Join(columns, ", ")),
+		fmt.Sprintf("SELECT %s", strings.Join(txColumns, ", ")),
+		"FROM `transaction`",
+		fmt.Sprintf("WHERE `hash` = (%s)", mysql.Compose(subQuery)),
+		"LIMIT 1",
+	}
+
+	var tx models.Transaction
+	var sysFee string
+	var netFee string
+
+	err := mysql.QueryRow(mysql.Compose(query), nil,
+		&tx.ID,
+		&tx.BlockIndex,
+		&tx.BlockTime,
+		&tx.Hash,
+		&tx.Size,
+		&tx.Version,
+		&tx.Nonce,
+		&tx.Sender,
+		&sysFee,
+		&netFee,
+		&tx.ValidUntilBlock,
+		&tx.Script,
+	)
+	if err != nil {
+		if mysql.IsRecordNotFoundError(err) {
+			return nil
+		}
+
+		log.Error(mysql.Compose(query))
+		log.Panic(err)
+	}
+
+	tx.SysFee = convert.ToDecimal(sysFee)
+	tx.NetFee = convert.ToDecimal(netFee)
+
+	return &tx
+}
+
+// GetTxCount return the number of txs starts
+// from the given primary key(>=).
+func GetTxCount(startPK uint) uint {
+	query := []string{
+		"SELECT COUNT(`id`)",
+		"FROM `transaction`",
+		fmt.Sprintf("WHERE `id` >= %d", startPK),
+	}
+
+	var count uint
+	err := mysql.QueryRow(mysql.Compose(query), nil, &count)
+	if err != nil {
+		log.Error(mysql.Compose(query))
+		log.Panic(err)
+	}
+
+	return count
+}
+
+// GetTransactions gets transactions starts from the given
+// primary key(>=) and limits to {limit} records from database.
+func GetTransactions(startPK, limit uint) []*models.Transaction {
+
+	query := []string{
+		fmt.Sprintf("SELECT %s", strings.Join(txColumns, ", ")),
 		"FROM `transaction`",
 		"WHERE `id` >= ?",
 		"LIMIT ?",
