@@ -191,12 +191,12 @@ func logHandler(format string, v []interface{}) (msg string) {
 		}
 	}()
 
-	if v == nil {
-		return format
-	}
-
 	if debug {
 		msg = fmt.Sprintf("[%s] ", fileInfo())
+	}
+
+	if v == nil {
+		return msg + format
 	}
 
 	for i := 0; i < len(v); i++ {
