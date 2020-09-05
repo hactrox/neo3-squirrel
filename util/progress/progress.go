@@ -38,7 +38,11 @@ func (progInfo *Progress) extractSeconds(secondsLeft uint64) {
 		progInfo.RemainingTimeStr = ""
 	} else {
 		timeStr := timeutil.ParseSeconds(secondsLeft)
-		progInfo.RemainingTimeStr = fmt.Sprintf("(%s left)", timeStr)
+		if timeStr == "" {
+			progInfo.RemainingTimeStr = ""
+		} else {
+			progInfo.RemainingTimeStr = fmt.Sprintf("(%s left)", timeStr)
+		}
 	}
 }
 
