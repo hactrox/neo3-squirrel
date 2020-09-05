@@ -9,37 +9,6 @@ import (
 	"strings"
 )
 
-// GetLastPKForApplicationLogTask returns the last
-// primary key of the inserted application log record.
-func GetLastPKForApplicationLogTask() uint {
-	subQuery := []string{
-		"SELECT `txid`",
-		"FROM `applicationlog`",
-		"ORDER BY `id` DESC",
-		"LIMIT 1",
-	}
-
-	query := []string{
-		"SELECT `id`",
-		"FROM `transaction`",
-		fmt.Sprintf("WHERE `hash` = (%s)", mysql.Compose(subQuery)),
-		"LIMIT 1",
-	}
-
-	var pk uint
-	err := mysql.QueryRow(mysql.Compose(query), nil, &pk)
-	if err != nil {
-		if mysql.IsRecordNotFoundError(err) {
-			return 0
-		}
-
-		log.Error(mysql.Compose(query))
-		log.Panic(err)
-	}
-
-	return pk
-}
-
 // InsertApplicationLog inserts applicationlog into database.
 func InsertApplicationLog(appLog *models.ApplicationLog) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
@@ -56,6 +25,7 @@ func insertAppLogBasic(sqlTx *sql.Tx, appLog *models.ApplicationLog) {
 		"`vmstate`",
 		"`gasconsumed`",
 		"`stack`",
+		"`notifications`",
 	}
 
 	query := []string{
@@ -69,6 +39,7 @@ func insertAppLogBasic(sqlTx *sql.Tx, appLog *models.ApplicationLog) {
 		appLog.VMState,
 		fmt.Sprintf("%.8f", appLog.GasConsumed),
 		appLog.Stack,
+		len(appLog.Notifications),
 	}
 
 	if len(columns) != len(args) {
