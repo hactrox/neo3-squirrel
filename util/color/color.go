@@ -72,6 +72,12 @@ func Yellow(txt string) string {
 	return Render(yellow, normal, txt)
 }
 
+// Yellowf text
+func Yellowf(format string, a ...interface{}) string {
+	msg := fmt.Sprintf(format, a...)
+	return Yellow(msg)
+}
+
 // Blue text
 func Blue(txt string) string {
 	return Render(blue, normal, txt)
