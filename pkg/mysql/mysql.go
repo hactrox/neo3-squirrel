@@ -50,7 +50,8 @@ func Init() {
 		log.Fatalf("Failed to connect database: %v", err)
 	}
 
-	db.SetConnMaxLifetime(1 * time.Hour)
+	db.SetConnMaxLifetime(10 * time.Second)
+	db.SetMaxIdleConns(0)
 
 	dbClient = &DB{db}
 }
@@ -71,13 +72,30 @@ func getConnConfig() string {
 }
 
 func (db *DB) reconnect() {
-	reconnector.Reconnect("Mysql", func() error {
-		return db.db.Ping()
+	reconnector.Reconnect("Mysql", func() bool {
+		return db.db.Ping() == nil && serverAlive()
 	})
 }
 
-func (db *DB) lostConnection() bool {
-	return db.db.Ping() != nil
+func (db *DB) lostConnection(err error) bool {
+	errMsg := err.Error()
+	if strings.HasSuffix(errMsg, "Server shutdown in progress") ||
+		strings.HasSuffix(errMsg, "invalid connection") {
+		log.Debug("server shutdown or connection invalid")
+		return true
+	}
+
+	return db.db.Ping() != nil || !serverAlive()
+}
+
+func serverAlive() bool {
+	var timestamp int64
+	query := "SELECT SQL_NO_CACHE UNIX_TIMESTAMP(CURTIME())"
+	err := QueryRow(query, nil, &timestamp)
+
+	log.Debug(timestamp)
+	log.Debug(err == nil)
+	return timestamp > 0 && err == nil
 }
 
 func dbReady() {

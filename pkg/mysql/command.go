@@ -64,7 +64,7 @@ func QueryRow(query string, args []interface{}, dest ...interface{}) error {
 }
 
 // Trans starts a transaction.
-func Trans(txFunc func(*sql.Tx) error) (err error) {
+func Trans(txFunc func(*sql.Tx) error) error {
 	dbReady()
 
 	tx, err := dbClient.db.Begin()
@@ -73,7 +73,7 @@ func Trans(txFunc func(*sql.Tx) error) (err error) {
 			return err
 		}
 
-		if dbClient.lostConnection() {
+		if dbClient.lostConnection(err) {
 			dbClient.reconnect()
 			return Trans(txFunc)
 		}
@@ -103,7 +103,16 @@ func Trans(txFunc func(*sql.Tx) error) (err error) {
 	}()
 
 	err = txFunc(tx)
-	return err
+	if err == nil || autoReconnectDisabled {
+		return err
+	}
+
+	if !dbClient.lostConnection(err) {
+		log.Panic(err)
+	}
+
+	dbClient.reconnect()
+	return Trans(txFunc)
 }
 
 func (db *DB) wrappedQuery(qFunc func() (interface{}, error)) (interface{}, error) {
@@ -114,7 +123,7 @@ func (db *DB) wrappedQuery(qFunc func() (interface{}, error)) (interface{}, erro
 				return re, err
 			}
 
-			if dbClient.lostConnection() {
+			if dbClient.lostConnection(err) {
 				db.reconnect()
 				// Retry db query after reconnect.
 				continue
