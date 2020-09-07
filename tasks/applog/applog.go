@@ -28,20 +28,17 @@ type appLogResult struct {
 
 // StartApplicationLogSyncTask starts application log sync task.
 func StartApplicationLogSyncTask() {
-	preAppLogChan := make(chan *models.Transaction, chanSize)
-	appLogChan := make(chan *appLogResult, chanSize)
-
-	lastTx := db.GetLastTxForApplicationLogTask()
+	lastAppLogTx := db.GetLastTxForApplicationLogTask()
 
 	nextTxPK := uint(0)
 	upToBlockHeight := uint(0)
 	upToBlockTime := ""
 
-	if lastTx != nil {
-		nextTxPK = lastTx.ID + 1
-		upToBlockHeight = lastTx.BlockIndex
+	if lastAppLogTx != nil {
+		nextTxPK = lastAppLogTx.ID + 1
+		upToBlockHeight = lastAppLogTx.BlockIndex
 		if upToBlockHeight > 0 {
-			upToBlockTime = time.Unix(int64(lastTx.BlockTime)/1000, 0).Format("(2006-01-02 15:04:05)")
+			upToBlockTime = time.Unix(int64(lastAppLogTx.BlockTime)/1000, 0).Format("(2006-01-02 15:04:05)")
 		}
 	}
 
@@ -56,18 +53,22 @@ func StartApplicationLogSyncTask() {
 		log.Info("* " + msg)
 	}
 
-	go fetchApplicatoinLogs(nextTxPK, preAppLogChan, appLogChan)
+	// Starts task.
+
+	preAppLogChan := make(chan *models.Transaction, chanSize)
+	appLogChan := make(chan *appLogResult, chanSize)
+
+	go fetchApplicationLogs(nextTxPK, preAppLogChan, appLogChan)
 	go queryAppLog(3, preAppLogChan)
 
-	go handleApplicatoinLogs(appLogChan)
+	go handleApplicationLogs(appLogChan)
 }
 
-func fetchApplicatoinLogs(nextTxPK uint, preAppLogChan chan<- *models.Transaction, appLogChan chan<- *appLogResult) {
+func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *models.Transaction, appLogChan chan<- *appLogResult) {
 	// TODO: mail alert
 
 	for {
 		txs := db.GetTransactions(nextTxPK, 1000)
-
 		if len(txs) == 0 {
 			time.Sleep(1 * time.Second)
 			continue
@@ -84,7 +85,7 @@ func fetchApplicatoinLogs(nextTxPK uint, preAppLogChan chan<- *models.Transactio
 
 		for _, tx := range txs {
 			for {
-				// Get applicatoinlog from
+				// Get applicationlog from
 				result, ok := appLogs.Load(tx.Hash)
 				if !ok {
 					time.Sleep(10 * time.Millisecond)
@@ -111,7 +112,7 @@ func queryAppLog(workers int, preAppLogChan <-chan *models.Transaction) {
 	for i := 0; i < workers; i++ {
 		go func(ch <-chan *models.Transaction) {
 			for tx := range ch {
-				// log.Debugf("prepare to query applicatoinlog of tx %s", tx.Hash)
+				// log.Debugf("prepare to query applicationlog of tx %s", tx.Hash)
 				appLogQueryResult := rpc.GetApplicationLog(int(tx.BlockIndex), tx.Hash)
 				appLogs.Store(tx.Hash, appLogQueryResult)
 				log.Debugf("store applog result into appLogs, txID=%s, len(noti)=%d", tx.Hash, len(appLogQueryResult.Notifications))
@@ -120,20 +121,16 @@ func queryAppLog(workers int, preAppLogChan <-chan *models.Transaction) {
 	}
 }
 
-func handleApplicatoinLogs(appLogChan <-chan *appLogResult) {
+func handleApplicationLogs(appLogChan <-chan *appLogResult) {
 	// TODO: mail alert
 
 	for result := range appLogChan {
-		// tx := result.tx
-		log.Debugf("handle application log of txID: %s", result.tx.Hash)
-		appLogResult := result.appLogQueryResult
+		tx := result.tx
+		logResult := result.appLogQueryResult
+		log.Debugf("handle application log of txID: %s", tx.Hash)
 
-		// Store applicatoinlog result
-		appLog := models.ParseApplicationLog(appLogResult)
+		// Store applicationlog result
+		appLog := models.ParseApplicationLog(tx, logResult)
 		db.InsertApplicationLog(&appLog)
-
-		if appLogResult.VMState == "FAULT" {
-			continue
-		}
 	}
 }
