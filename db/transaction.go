@@ -25,7 +25,7 @@ var txColumns = []string{
 }
 
 // GetLastTxForApplicationLogTask returns the last
-// primary key of the inserted application log record.
+// transaction of the inserted application log record.
 func GetLastTxForApplicationLogTask() *models.Transaction {
 	subQuery := []string{
 		"SELECT `txid`",
@@ -75,7 +75,7 @@ func GetLastTxForApplicationLogTask() *models.Transaction {
 }
 
 // GetTxCount return the number of txs starts
-// from the given primary key(>=).
+// from the given primary key(>=startPK).
 func GetTxCount(startPK uint) uint {
 	query := []string{
 		"SELECT COUNT(`id`)",
@@ -96,7 +96,6 @@ func GetTxCount(startPK uint) uint {
 // GetTransactions gets transactions starts from the given
 // primary key(>=) and limits to {limit} records from database.
 func GetTransactions(startPK, limit uint) []*models.Transaction {
-
 	query := []string{
 		fmt.Sprintf("SELECT %s", strings.Join(txColumns, ", ")),
 		"FROM `transaction`",
@@ -109,6 +108,8 @@ func GetTransactions(startPK, limit uint) []*models.Transaction {
 		log.Error(mysql.Compose(query))
 		log.Panic(err)
 	}
+
+	defer rows.Close()
 
 	txs := []*models.Transaction{}
 
@@ -142,4 +143,46 @@ func GetTransactions(startPK, limit uint) []*models.Transaction {
 	}
 
 	return txs
+}
+
+// GetTransaction returns transaction by txID.
+func GetTransaction(txID string) *models.Transaction {
+	query := []string{
+		fmt.Sprintf("SELECT %s", strings.Join(txColumns, ", ")),
+		"FROM `transaction`",
+		fmt.Sprintf("WHERE `txid` = '%s'", txID),
+		"LIMIT 1",
+	}
+
+	tx := models.Transaction{}
+	var sysFee string
+	var netFee string
+
+	err := mysql.QueryRow(mysql.Compose(query), nil,
+		&tx.ID,
+		&tx.BlockIndex,
+		&tx.BlockTime,
+		&tx.Hash,
+		&tx.Size,
+		&tx.Version,
+		&tx.Nonce,
+		&tx.Sender,
+		&sysFee,
+		&netFee,
+		&tx.ValidUntilBlock,
+		&tx.Script,
+	)
+	if err != nil {
+		if mysql.IsRecordNotFoundError(err) {
+			return nil
+		}
+
+		log.Error(mysql.Compose(query))
+		log.Panic(err)
+	}
+
+	tx.SysFee = convert.ToDecimal(sysFee)
+	tx.NetFee = convert.ToDecimal(netFee)
+
+	return &tx
 }
