@@ -19,7 +19,7 @@ type locker struct {
 
 var l *locker
 
-type reconnFunc func() error
+type reconnFunc func() bool
 
 func init() {
 	l = &locker{
@@ -51,7 +51,7 @@ func Reconnect(target string, f reconnFunc) {
 
 	for {
 		retryCnt++
-		if err := f(); err == nil {
+		if f() {
 			return
 		}
 

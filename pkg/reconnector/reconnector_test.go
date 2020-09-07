@@ -43,11 +43,11 @@ func TestReconnect(t *testing.T) {
 	log.Init(true)
 	connErr := errors.New("error")
 
-	f := func() error {
+	f := func() bool {
 		defer func() {
 			connErr = nil
 		}()
-		return connErr
+		return connErr == nil
 	}
 
 	ch := make(chan bool, 1)
