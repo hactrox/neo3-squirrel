@@ -2,9 +2,9 @@ package models
 
 import (
 	"encoding/json"
-	"log"
 	"math/big"
 	"neo3-squirrel/rpc"
+	"neo3-squirrel/util/log"
 )
 
 // ApplicationLog db model.
@@ -20,13 +20,30 @@ type ApplicationLog struct {
 
 // Notification db model.
 type Notification struct {
-	Contract  string
-	EventName string
-	State     []byte
+	ID         uint
+	TxID       string
+	BlockIndex uint
+	BlockTime  uint64
+	VMState    string
+	Contract   string
+	EventName  string
+	State      State
+}
+
+// State represents notification state.
+type State struct {
+	Type  string
+	Value []StateValue
+}
+
+// StateValue represents value of a notification state.
+type StateValue struct {
+	Type  string
+	Value interface{}
 }
 
 // ParseApplicationLog parses struct raw application log rpc query result to db model.
-func ParseApplicationLog(appLogResult *rpc.ApplicationLogResult) ApplicationLog {
+func ParseApplicationLog(tx *Transaction, appLogResult *rpc.ApplicationLogResult) ApplicationLog {
 	stack, err := json.Marshal(appLogResult.Stack)
 	if err != nil {
 		log.Panic(err)
@@ -41,15 +58,24 @@ func ParseApplicationLog(appLogResult *rpc.ApplicationLogResult) ApplicationLog 
 	}
 
 	for _, notiResult := range appLogResult.Notifications {
-		state, err := json.Marshal(notiResult.State)
-		if err != nil {
-			log.Panic(err)
+		noti := Notification{
+			TxID:       appLogResult.TxID,
+			BlockIndex: tx.BlockIndex,
+			BlockTime:  tx.BlockTime,
+			VMState:    appLogResult.VMState,
+			Contract:   notiResult.Contract,
+			EventName:  notiResult.EventName,
+			State: State{
+				Type: notiResult.State.Type,
+				// Value: notiResult.State.Value, being parsed below.
+			},
 		}
 
-		noti := Notification{
-			Contract:  notiResult.Contract,
-			EventName: notiResult.EventName,
-			State:     state,
+		for _, value := range notiResult.State.Value {
+			noti.State.Value = append(noti.State.Value, StateValue{
+				Type:  value.Type,
+				Value: value.Value,
+			})
 		}
 
 		appLog.Notifications = append(appLog.Notifications, noti)

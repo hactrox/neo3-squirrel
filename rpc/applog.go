@@ -23,7 +23,7 @@ type ApplicationLogResult struct {
 	Notifications []Notification `json:"notifications"`
 }
 
-// Notification represents a single notificatoin of applicatino log.
+// Notification represents a single notification of applicatino log.
 type Notification struct {
 	Contract  string `json:"contract"`
 	EventName string `json:"eventname"`
