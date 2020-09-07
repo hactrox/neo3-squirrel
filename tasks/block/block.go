@@ -28,6 +28,12 @@ var (
 // StartBlockSyncTask starts block sync tasks.
 func StartBlockSyncTask() {
 	lastBlockHeight := db.GetLastBlockHeight()
+	bestBlockHeight := rpc.GetBestHeight()
+
+	log.Info(color.Greenf("Block sync progress: %d/%d", lastBlockHeight, bestBlockHeight),
+		color.BGreenf(", %d", bestBlockHeight-lastBlockHeight),
+		color.Green(" blocks behind"))
+
 	buffer = NewBuffer(lastBlockHeight)
 
 	for i := 0; i < config.GetWorkers(); i++ {
