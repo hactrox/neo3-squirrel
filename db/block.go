@@ -37,14 +37,12 @@ func InsertBlock(blocks []*models.Block, txBulk *models.TxBulk) {
 				continue
 			}
 			if _, err := sqlTx.Exec(cmd); err != nil {
-				log.Error(cmd)
-				log.Panic(err)
+				log.Error(err)
 				return err
 			}
 		}
 
-		updateCounter(sqlTx, "block_index", int64(blocks[len(blocks)-1].Index))
-		return nil
+		return updateCounter(sqlTx, "block_index", int64(blocks[len(blocks)-1].Index))
 	})
 }
 

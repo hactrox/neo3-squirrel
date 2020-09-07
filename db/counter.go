@@ -49,7 +49,7 @@ func getCounterInstance() Counter {
 	return counter
 }
 
-func updateCounter(sqlTx *sql.Tx, field string, value interface{}) {
+func updateCounter(sqlTx *sql.Tx, field string, value interface{}) error {
 	query := []string{
 		"UPDATE `counter`",
 		fmt.Sprintf("SET %s=%v", field, value),
@@ -59,9 +59,10 @@ func updateCounter(sqlTx *sql.Tx, field string, value interface{}) {
 
 	result, err := sqlTx.Exec(mysql.Compose(query))
 	if err != nil {
-		log.Error(query)
-		log.Panic(err)
+		log.Error(err)
+		return err
 	}
 
 	mysql.CheckIfRowsNotAffected(result, query)
+	return err
 }

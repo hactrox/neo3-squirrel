@@ -12,13 +12,18 @@ import (
 // InsertApplicationLog inserts applicationlog into database.
 func InsertApplicationLog(appLog *models.ApplicationLog) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
-		insertAppLogBasic(sqlTx, appLog)
-		insertAppLogNotifications(sqlTx, appLog.Notifications)
+		if err := insertAppLogBasic(sqlTx, appLog); err != nil {
+			return err
+		}
+		if err := insertAppLogNotifications(sqlTx, appLog.Notifications); err != nil {
+			return err
+		}
+
 		return nil
 	})
 }
 
-func insertAppLogBasic(sqlTx *sql.Tx, appLog *models.ApplicationLog) {
+func insertAppLogBasic(sqlTx *sql.Tx, appLog *models.ApplicationLog) error {
 	columns := []string{
 		"`txid`",
 		"`trigger`",
@@ -48,12 +53,13 @@ func insertAppLogBasic(sqlTx *sql.Tx, appLog *models.ApplicationLog) {
 
 	_, err := sqlTx.Exec(mysql.Compose(query), args...)
 	if err != nil {
-		log.Error(mysql.Compose(query))
-		log.Panic(err)
+		log.Error(err)
 	}
+
+	return err
 }
 
-func insertAppLogNotifications(sqlTx *sql.Tx, notifications []models.Notification) {
+func insertAppLogNotifications(sqlTx *sql.Tx, notifications []models.Notification) error {
 	columns := []string{
 		`contract`,
 		`eventname`,
@@ -78,7 +84,8 @@ func insertAppLogNotifications(sqlTx *sql.Tx, notifications []models.Notificatio
 	query := strBuilder.String()
 	_, err := sqlTx.Exec(query, args...)
 	if err != nil {
-		log.Error(query)
-		log.Panic(err)
+		log.Error(err)
 	}
+
+	return err
 }
