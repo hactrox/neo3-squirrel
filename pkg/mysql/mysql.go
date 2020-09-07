@@ -93,8 +93,6 @@ func serverAlive() bool {
 	query := "SELECT SQL_NO_CACHE UNIX_TIMESTAMP(CURTIME())"
 	err := QueryRow(query, nil, &timestamp)
 
-	log.Debug(timestamp)
-	log.Debug(err == nil)
 	return timestamp > 0 && err == nil
 }
 
