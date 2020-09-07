@@ -63,7 +63,7 @@ func generateRequestBody(method string, params []interface{}) string {
 func call(minHeight int, params string, target interface{}) {
 	reqLock.RLock()
 	defer reqLock.RUnlock()
-	log.Debugf("rpc call: minHeight=%d, params=%s", minHeight, params)
+	// log.Debugf("rpc call: minHeight=%d, params=%s", minHeight, params)
 
 	requestBody := []byte(params)
 	resp := fasthttp.AcquireResponse()
@@ -92,9 +92,11 @@ func call(minHeight int, params string, target interface{}) {
 		req.SetRequestURI(url)
 		err := client.Do(req, resp)
 		if err != nil {
-			log.Error(err)
+			if !strings.Contains(err.Error(), "timed out") {
+				log.Error(err)
+			}
 			nodeUnavailable(url)
-			time.Sleep(200 * time.Millisecond)
+			time.Sleep(100 * time.Millisecond)
 			continue
 		}
 

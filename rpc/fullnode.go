@@ -122,10 +122,13 @@ func TraceBestHeight() {
 					}
 
 					if !hinted {
-						msg := color.BYellow("All fullnodes down. All sync tasks paused and waiting for any nodes up")
-						log.Warn(msg)
+						msgs := []string{
+							"All fullnodes down.",
+							"All sync tasks paused and waiting for any nodes wake up.",
+						}
+						log.Warn(color.BYellow(strings.Join(msgs, " ")))
+						hinted = true
 					}
-					hinted = true
 
 					time.Sleep(1 * time.Second)
 				}
