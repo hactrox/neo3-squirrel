@@ -17,9 +17,11 @@ import (
 )
 
 var (
-	nodes      map[string]int
+	// map[host]height -> map[string]int
+	nodeHeight sync.Map
+	reqLock    sync.RWMutex
+
 	bestHeight counter.SafeCounter
-	nLock      sync.RWMutex
 )
 
 type nodeInfo struct {
@@ -27,12 +29,29 @@ type nodeInfo struct {
 	height int
 }
 
+func getNodes() map[string]int {
+	mp := make(map[string]int)
+
+	nodeHeight.Range(func(key interface{}, value interface{}) bool {
+		host := key.(string)
+		height := value.(int)
+
+		mp[host] = height
+
+		return true
+	})
+	return mp
+}
+
+func updateNodes(mp map[string]int) {
+	for host, height := range mp {
+		nodeHeight.Store(host, height)
+	}
+}
+
 // GetStatus prints rpc host with its current best height.
 func GetStatus() {
-	nLock.RLock()
-	defer nLock.RUnlock()
-
-	for host, height := range nodes {
+	for host, height := range getNodes() {
 		if height < 0 {
 			log.Warnf(color.BRedf("%s: Server unavailable", host))
 		} else {
@@ -46,10 +65,8 @@ func GetBestHeight() int {
 	return bestHeight.Get()
 }
 
-func refreshNodesStatus() int {
+func refreshNodesHeight() int {
 	nodeInfos := getHeights()
-
-	nLock.Lock()
 
 	bestIndex := -1
 	for _, blockIndex := range nodeInfos {
@@ -58,17 +75,8 @@ func refreshNodesStatus() int {
 		}
 	}
 
-	if len(nodes) == 0 && bestIndex == -1 {
-		log.Error(color.BRed("All fullnodes unavailable"))
-		os.Exit(1)
-	}
-
-	nodes = nodeInfos
-
-	// TODO: If bestIndex == 0
+	updateNodes(nodeInfos)
 	bestHeight.Set(bestIndex)
-
-	nLock.Unlock()
 
 	return bestIndex
 }
@@ -79,42 +87,65 @@ func TraceBestHeight() {
 	// defer mail.AlertIfErr()
 
 	rpcs := config.GetRPCs()
-	nodes = make(map[string]int)
+	newodeHeight := make(map[string]int)
 	for _, rpc := range rpcs {
-		nodes[rpc] = 0
+		newodeHeight[rpc] = 0
 	}
+
+	if len(newodeHeight) == 0 {
+		log.Panic("fullnode rpc address must be set before use")
+	}
+
+	updateNodes(newodeHeight)
 
 	log.Info("Checking all fullnodes...")
 
-	refreshNodesStatus()
+	refreshNodesHeight()
 	GetStatus()
+
+	if GetBestHeight() == -1 {
+		log.Error(color.BRed("All fullnodes unavailable"))
+		os.Exit(1)
+	}
 
 	go func() {
 		for {
-			refreshNodesStatus()
+			bestHeight := refreshNodesHeight()
+			if bestHeight == -1 {
+				reqLock.Lock()
+				hinted := false
+				for {
+					bestHeight = refreshNodesHeight()
+					if bestHeight > -1 {
+						reqLock.Unlock()
+						break
+					}
 
-			time.Sleep(2 * time.Second)
+					if !hinted {
+						msg := color.BYellow("All fullnodes down. All sync tasks paused and waiting for any nodes up")
+						log.Warn(msg)
+					}
+					hinted = true
+
+					time.Sleep(1 * time.Second)
+				}
+			}
+
+			time.Sleep(1 * time.Second)
 		}
 	}()
 }
 
-func pickNode(minHeight int) (string, bool) {
+func selectNode(minHeight int) (string, bool) {
 	if minHeight < 0 {
-		err := fmt.Errorf("parameter invalid, minHeight cannot lower than 0, current value=%d", minHeight)
+		err := fmt.Errorf("minHeight cannot lower than 0, current value=%d", minHeight)
 		log.Panic(err)
-	}
-
-	nLock.RLock()
-	defer nLock.RUnlock()
-
-	if len(nodes) == 0 {
-		log.Panic("fullnode rpc address must be set before use")
 	}
 
 	// Suppose all nodes are qualified.
 	candidates := []string{}
 
-	for url, height := range nodes {
+	for url, height := range getNodes() {
 		if height >= minHeight {
 			// Increase the possibility to select local nodes.
 			if strings.Contains(url, "127.0.0.1") ||
@@ -134,9 +165,13 @@ func pickNode(minHeight int) (string, bool) {
 	return candidates[rand.Intn(l)], true
 }
 
-// getHeights gets best height of all fullnodes
-// and returns best height from these nodes.
+// getHeights gets best height of all fullnodes.
 func getHeights() map[string]int {
+	nodes := getNodes()
+	if len(nodes) == 0 {
+		return nil
+	}
+
 	c := make(chan nodeInfo, len(nodes))
 
 	for url := range nodes {
@@ -173,7 +208,7 @@ func getHeightFrom(url string) (int, error) {
 	respData := BlockCountRespponse{}
 	err := client.Do(req, resp)
 	if err != nil {
-		log.Error(err)
+		// log.Debug(err)
 		return -1, err
 	}
 
@@ -187,17 +222,11 @@ func getHeightFrom(url string) (int, error) {
 }
 
 func nodeUnavailable(url string) {
-	nLock.RLock()
-	defer nLock.RUnlock()
-
-	// Incase node changed(e.g., reloaded dut to config file change).
-	if _, ok := nodes[url]; ok {
-		nodes[url] = -1
-	}
+	updateNodes(map[string]int{url: -1})
 }
 
 func setRPCforTest(rpcAddr string) {
-	nodes = make(map[string]int)
-	nodes[rpcAddr] = 0
-	refreshNodesStatus()
+	nodes := map[string]int{rpcAddr: 0}
+	updateNodes(nodes)
+	refreshNodesHeight()
 }

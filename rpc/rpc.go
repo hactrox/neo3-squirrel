@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
+	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/log"
 	"strings"
 	"time"
@@ -14,7 +15,7 @@ import (
 
 var (
 	client = &fasthttp.Client{
-		MaxConnWaitTimeout: 15 * time.Second,
+		MaxConnWaitTimeout: 10 * time.Second,
 		MaxConnsPerHost:    20,
 	}
 )
@@ -60,6 +61,10 @@ func generateRequestBody(method string, params []interface{}) string {
 }
 
 func call(minHeight int, params string, target interface{}) {
+	reqLock.RLock()
+	defer reqLock.RUnlock()
+	log.Debugf("rpc call: minHeight=%d, params=%s", minHeight, params)
+
 	requestBody := []byte(params)
 	resp := fasthttp.AcquireResponse()
 	req := fasthttp.AcquireRequest()
@@ -67,14 +72,18 @@ func call(minHeight int, params string, target interface{}) {
 	req.SetBody(requestBody)
 
 	for {
-		url, ok := pickNode(minHeight)
+		url, ok := selectNode(minHeight)
 		if !ok {
 			if strings.Contains(params, `"getblock"`) {
 				// Exceed the highest block index, return nil.
 				return
 			}
-			delay := 2
-			fmt.Printf("No server's height higher than or equal to %d\nWaiting for %d seconds before retry\n", minHeight, delay)
+
+			delay := 3
+			msg := fmt.Sprintf("All fullnodes lower than height %d. ", minHeight)
+			msg += fmt.Sprintf("Retry request after %d seconds", delay)
+			log.Warn(color.Yellowf(msg))
+
 			time.Sleep(time.Duration(delay) * time.Second)
 			GetStatus()
 			continue
