@@ -1,7 +1,6 @@
 package rpc
 
 import (
-	"fmt"
 	"neo3-squirrel/tests"
 	"testing"
 )
@@ -17,6 +16,10 @@ func TestGetApplicationLog(t *testing.T) {
 
 	for _, tx := range block.Tx {
 		appLogResult := GetApplicationLog(0, tx.Hash)
-		fmt.Println(appLogResult)
+		if appLogResult == nil ||
+			appLogResult.TxID == "" ||
+			appLogResult.VMState == "" {
+			t.Fatalf("Incorrect 'GetApplicationLog' func, txid=%s", tx.Hash)
+		}
 	}
 }
