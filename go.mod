@@ -9,7 +9,7 @@ require (
 	github.com/spf13/viper v1.6.2
 	github.com/stretchr/testify v1.4.0 // indirect
 	github.com/valyala/fasthttp v1.16.0
-	golang.org/x/crypto v0.0.0-20200311171314-f7b00557c8c4
+	golang.org/x/crypto v0.0.0-20200622213623-75b288015ac9
 	golang.org/x/text v0.3.2 // indirect
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
 	gopkg.in/yaml.v2 v2.3.0 // indirect
