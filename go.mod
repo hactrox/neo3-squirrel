@@ -9,7 +9,6 @@ require (
 	github.com/nspcc-dev/neo-go v0.91.1
 	github.com/sirupsen/logrus v1.6.0
 	github.com/spf13/viper v1.7.1
-	github.com/ugorji/go v1.1.7 // indirect
 	github.com/valyala/fasthttp v1.16.0
 	golang.org/x/crypto v0.0.0-20200820211705-5c72a883971a
 	gopkg.in/natefinch/lumberjack.v2 v2.0.0
