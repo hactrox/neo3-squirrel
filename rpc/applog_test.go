@@ -6,7 +6,11 @@ import (
 )
 
 func TestGetApplicationLog(t *testing.T) {
-	setRPCforTest(tests.GetTestRPC())
+	if testing.Short() {
+		t.SkipNow()
+	}
+
+	setRPCforTest(tests.GetTestRPC(t))
 
 	// Get transactions of block index 0.
 	block := SyncBlock(0)

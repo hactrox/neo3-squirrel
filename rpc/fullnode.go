@@ -2,7 +2,6 @@ package rpc
 
 import (
 	"encoding/json"
-	"fmt"
 	"math/rand"
 	"neo3-squirrel/config"
 	"neo3-squirrel/util/color"
@@ -139,17 +138,12 @@ func TraceBestHeight() {
 	}()
 }
 
-func selectNode(minHeight int) (string, bool) {
-	if minHeight < 0 {
-		err := fmt.Errorf("minHeight cannot lower than 0, current value=%d", minHeight)
-		log.Panic(err)
-	}
-
+func selectNode(minHeight uint) (string, bool) {
 	// Suppose all nodes are qualified.
 	candidates := []string{}
 
 	for url, height := range getNodes() {
-		if height >= minHeight {
+		if height >= int(minHeight) {
 			// Increase the possibility to select local nodes.
 			if strings.Contains(url, "127.0.0.1") ||
 				strings.Contains(url, "localhost") {

@@ -14,7 +14,7 @@ type ApplicationLog struct {
 	Trigger       string
 	VMState       string
 	GasConsumed   *big.Float
-	Stack         []byte
+	Stack         []StackItem
 	Notifications []Notification
 }
 
@@ -27,34 +27,72 @@ type Notification struct {
 	VMState    string
 	Contract   string
 	EventName  string
-	State      State
+	State      *State
 }
 
 // State represents notification state.
 type State struct {
 	Type  string
-	Value []StateValue
+	Value []StackItem
 }
 
-// StateValue represents value of a notification state.
-type StateValue struct {
+// StackItem represents value of a notification state.
+type StackItem struct {
 	Type  string
 	Value interface{}
 }
 
-// ParseApplicationLog parses struct raw application log rpc query result to db model.
-func ParseApplicationLog(tx *Transaction, appLogResult *rpc.ApplicationLogResult) ApplicationLog {
-	stack, err := json.Marshal(appLogResult.Stack)
+// MarshalStack is the shortcut of json.Marshal(appLog.Stack).
+func (appLog *ApplicationLog) MarshalStack() []byte {
+	stack, err := json.Marshal(appLog.Stack)
 	if err != nil {
 		log.Panic(err)
 	}
 
+	return stack
+}
+
+// UnmarshalStack is the shortcut of json.Unmarshal(stack, &appLog.Stack).
+func (appLog *ApplicationLog) UnmarshalStack(stack []byte) {
+	err := json.Unmarshal(stack, &appLog.Stack)
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
+// MarshalState is the shortcut of json.Marshal(noti.State).
+func (noti *Notification) MarshalState() []byte {
+	state, err := json.Marshal(noti.State)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return state
+}
+
+// UnmarshalState is the shortcut of json.Unmarshal(state, &noti.State).
+func (noti *Notification) UnmarshalState(state []byte) {
+	err := json.Unmarshal(state, &noti.State)
+	if err != nil {
+		log.Panic(err)
+	}
+}
+
+// ParseApplicationLog parses struct raw application log rpc query result to db model.
+func ParseApplicationLog(tx *Transaction, appLogResult *rpc.ApplicationLogResult) ApplicationLog {
 	appLog := ApplicationLog{
 		TxID:        appLogResult.TxID,
 		Trigger:     appLogResult.Trigger,
 		VMState:     appLogResult.VMState,
 		GasConsumed: appLogResult.GasConsumed,
-		Stack:       stack,
+		// Stack: parsed below.
+	}
+
+	for _, stack := range appLogResult.Stack {
+		appLog.Stack = append(appLog.Stack, StackItem{
+			Type:  stack.Type,
+			Value: stack.Value,
+		})
 	}
 
 	for _, notiResult := range appLogResult.Notifications {
@@ -65,14 +103,14 @@ func ParseApplicationLog(tx *Transaction, appLogResult *rpc.ApplicationLogResult
 			VMState:    appLogResult.VMState,
 			Contract:   notiResult.Contract,
 			EventName:  notiResult.EventName,
-			State: State{
+			State: &State{
 				Type: notiResult.State.Type,
-				// Value: notiResult.State.Value, being parsed below.
+				// Value: parsed below.
 			},
 		}
 
 		for _, value := range notiResult.State.Value {
-			noti.State.Value = append(noti.State.Value, StateValue{
+			noti.State.Value = append(noti.State.Value, StackItem{
 				Type:  value.Type,
 				Value: value.Value,
 			})

@@ -206,6 +206,12 @@ func BLightGreen(txt string) string {
 	return Render(lightGreen, bold, txt)
 }
 
+// BLightGreenf returns bold light green
+func BLightGreenf(format string, a ...interface{}) string {
+	msg := fmt.Sprintf(format, a...)
+	return BLightGreen(msg)
+}
+
 // BLightYellow returns bold light yellow
 func BLightYellow(txt string) string {
 	return Render(lightYellow, bold, txt)

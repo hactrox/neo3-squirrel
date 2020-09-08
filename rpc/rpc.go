@@ -23,6 +23,10 @@ var (
 type responseCommon struct {
 	JSONRPC string `json:"jsonrpc"`
 	ID      int    `json:"id"`
+	Error   *struct {
+		Code    int    `json:"code"`
+		Message string `json:"message"`
+	} `json:"error"`
 }
 
 func generateRequestBody(method string, params []interface{}) string {
@@ -60,7 +64,7 @@ func generateRequestBody(method string, params []interface{}) string {
 	return body
 }
 
-func call(minHeight int, params string, target interface{}) {
+func call(minHeight uint, params string, target interface{}) {
 	reqLock.RLock()
 	defer reqLock.RUnlock()
 	// log.Debugf("rpc call: minHeight=%d, params=%s", minHeight, params)

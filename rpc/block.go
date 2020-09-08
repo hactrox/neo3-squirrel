@@ -35,7 +35,7 @@ type Block struct {
 }
 
 // SyncBlock from rpc server.
-func SyncBlock(index int) *Block {
+func SyncBlock(index uint) *Block {
 	params := []interface{}{index, 1}
 	args := generateRequestBody("getblock", params)
 

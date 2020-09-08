@@ -75,7 +75,7 @@ func fetchBlock() {
 			waiting(&waited, nextHeight)
 		}
 
-		b := rpc.SyncBlock(nextHeight)
+		b := rpc.SyncBlock(uint(nextHeight))
 
 		// Beyond the latest block.
 		if b == nil {
@@ -114,11 +114,11 @@ func arrangeBlock(dbHeight int, queue chan<- *rpc.Block) {
 	// defer mail.AlertIfErr()
 
 	const sleepTime = 20
-	height := dbHeight + 1
+	height := uint(dbHeight + 1)
 	delay := 0
 
 	for {
-		if b, ok := buffer.Pop(height); ok {
+		if b, ok := buffer.Pop(int(height)); ok {
 			queue <- b
 			height++
 			delay = 0
@@ -144,7 +144,7 @@ func arrangeBlock(dbHeight int, queue chan<- *rpc.Block) {
 	}
 }
 
-func getMissingBlock(height int) {
+func getMissingBlock(height uint) {
 	log.Infof("Try fetching given block of height: %d\n", height)
 
 	b := rpc.SyncBlock(height)

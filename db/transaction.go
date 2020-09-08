@@ -150,7 +150,7 @@ func GetTransaction(txID string) *models.Transaction {
 	query := []string{
 		fmt.Sprintf("SELECT %s", strings.Join(txColumns, ", ")),
 		"FROM `transaction`",
-		fmt.Sprintf("WHERE `txid` = '%s'", txID),
+		fmt.Sprintf("WHERE `hash` = '%s'", txID),
 		"LIMIT 1",
 	}
 

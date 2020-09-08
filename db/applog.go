@@ -2,7 +2,6 @@ package db
 
 import (
 	"database/sql"
-	"encoding/json"
 	"fmt"
 	"neo3-squirrel/models"
 	"neo3-squirrel/pkg/mysql"
@@ -55,31 +54,7 @@ func GetApplicationLogByID(pk uint) *models.ApplicationLog {
 		"LIMIT 1",
 	}
 
-	appLog := models.ApplicationLog{}
-	var gasConsumed string
-	var notifications uint
-
-	err := mysql.QueryRow(mysql.Compose(query), nil,
-		&appLog.ID,
-		&appLog.TxID,
-		&appLog.Trigger,
-		&appLog.VMState,
-		&gasConsumed,
-		&appLog.Stack,
-		&notifications,
-	)
-	if err != nil {
-		if mysql.IsRecordNotFoundError(err) {
-			return nil
-		}
-
-		log.Error(mysql.Compose(query))
-		log.Panic(err)
-	}
-
-	appLog.GasConsumed = convert.ToDecimal(gasConsumed)
-
-	return &appLog
+	return getApplicatoinLogQuery(mysql.Compose(query))
 }
 
 // GetApplicationLogByTxID returns application log by txID.
@@ -91,17 +66,22 @@ func GetApplicationLogByTxID(txID string) *models.ApplicationLog {
 		"LIMIT 1",
 	}
 
+	return getApplicatoinLogQuery(mysql.Compose(query))
+}
+
+func getApplicatoinLogQuery(query string) *models.ApplicationLog {
 	appLog := models.ApplicationLog{}
 	var gasConsumed string
 	var notifications uint
+	var stack []byte
 
-	err := mysql.QueryRow(mysql.Compose(query), nil,
+	err := mysql.QueryRow(query, nil,
 		&appLog.ID,
 		&appLog.TxID,
 		&appLog.Trigger,
 		&appLog.VMState,
 		&gasConsumed,
-		&appLog.Stack,
+		&stack,
 		&notifications,
 	)
 	if err != nil {
@@ -109,11 +89,12 @@ func GetApplicationLogByTxID(txID string) *models.ApplicationLog {
 			return nil
 		}
 
-		log.Error(mysql.Compose(query))
+		log.Error(query)
 		log.Panic(err)
 	}
 
 	appLog.GasConsumed = convert.ToDecimal(gasConsumed)
+	appLog.UnmarshalStack(stack)
 
 	return &appLog
 }
@@ -136,6 +117,8 @@ func GetLastNotiForNEP5Task() *models.Notification {
 	}
 
 	var noti models.Notification
+	state := []byte{}
+
 	err := mysql.QueryRow(mysql.Compose(query), nil,
 		&noti.ID,
 		&noti.TxID,
@@ -144,7 +127,7 @@ func GetLastNotiForNEP5Task() *models.Notification {
 		&noti.VMState,
 		&noti.Contract,
 		&noti.EventName,
-		&noti.State,
+		&state,
 	)
 	if err != nil {
 		if mysql.IsRecordNotFoundError(err) {
@@ -155,11 +138,14 @@ func GetLastNotiForNEP5Task() *models.Notification {
 		log.Panic(err)
 	}
 
+	noti.UnmarshalState(state)
+
 	return &noti
 }
 
 // GetGroupedAppLogNotifications returns grouped notifications
 // of a set of application logs.
+// NOTE: ALL VMSTATE(NONE, HALT, FAULT, BREAK) INCLUDED.
 func GetGroupedAppLogNotifications(appLogPK, limit uint) []*models.Notification {
 	// SELECT *
 	// FROM `applicationlog_notification`
@@ -211,10 +197,7 @@ func GetGroupedAppLogNotifications(appLogPK, limit uint) []*models.Notification 
 			log.Panic(err)
 		}
 
-		err = json.Unmarshal(state, &noti.State)
-		if err != nil {
-			log.Panic(err)
-		}
+		noti.UnmarshalState(state)
 
 		notifications = append(notifications, &noti)
 	}
@@ -243,6 +226,7 @@ func GetAppLogNotifications(startPK, limit uint) []*models.Notification {
 
 	for rows.Next() {
 		var noti models.Notification
+		state := []byte{}
 
 		err := rows.Scan(
 			&noti.ID,
@@ -252,11 +236,13 @@ func GetAppLogNotifications(startPK, limit uint) []*models.Notification {
 			&noti.VMState,
 			&noti.Contract,
 			&noti.EventName,
-			&noti.State,
+			&state,
 		)
 		if err != nil {
 			log.Panic(err)
 		}
+
+		noti.UnmarshalState(state)
 
 		notifications = append(notifications, &noti)
 	}
@@ -295,7 +281,7 @@ func insertAppLogBasic(sqlTx *sql.Tx, appLog *models.ApplicationLog) error {
 		appLog.Trigger,
 		appLog.VMState,
 		fmt.Sprintf("%.8f", appLog.GasConsumed),
-		appLog.Stack,
+		appLog.MarshalStack(),
 		len(appLog.Notifications),
 	}
 
@@ -324,10 +310,7 @@ func insertAppLogNotifications(sqlTx *sql.Tx, notifications []models.Notificatio
 	// Construct sql query args.
 	args := []interface{}{}
 	for _, noti := range notifications {
-		state, err := json.Marshal(noti.State)
-		if err != nil {
-			log.Panic(err)
-		}
+		state := noti.MarshalState()
 
 		args = append(args,
 			noti.TxID,
