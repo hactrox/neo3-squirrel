@@ -5,7 +5,7 @@ CREATE TABLE IF NOT EXISTS `counter`
     `addr_count`  INT UNSIGNED  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
-INSERT INTO `counter`(`id`, `block_index`, `tx_pk`, `addr_count`) VALUES(1, -1, 0, 0);
+INSERT INTO `counter`(`id`, `block_index`, `addr_count`) VALUES(1, -1, 0);
 
 
 CREATE TABLE IF NOT EXISTS `block`
@@ -139,32 +139,3 @@ CREATE TABLE IF NOT EXISTS `asset`
     `type`             VARCHAR(16)  NOT NULL,
     `total_supply`  DECIMAL(35, 8)  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
-
-
--- Validations
-
-SET @blockCount := (SELECT COUNT(`index`) FROM `block`);
-SET @blockIndex := (SELECT `block_index` FROM `counter`);
-
-SELECT 'Neo3 Squirrel SQL Validation', 'Result'
-UNION ALL
-SELECT 'check block count', IF((SELECT COUNT(`index`) FROM `block`) - (SELECT `block_index` FROM `counter`) = 1, 'PASS', 'FAIL')
-UNION ALL
-SELECT 'check notification count', IF((SELECT SUM(`notifications`) FROM `applicationlog`) - (SELECT COUNT(`id`) FROM `applicationlog_notification`)=0, 'PASS', 'FAIL')
-UNION ALL
-SELECT 'check transaction count', IF((SELECT SUM(`txs`) FROM `block`) - (SELECT COUNT(`id`) FROM `transaction`)=0, 'PASS', 'FAIL');
-
--- Reset all
-TRUNCATE TABLE `addr_asset`;
-TRUNCATE TABLE `applicationlog`;
-TRUNCATE TABLE `applicationlog_notification`;
-TRUNCATE TABLE `asset`;
-TRUNCATE TABLE `block`;
-TRUNCATE TABLE `block_witness`;
-TRUNCATE TABLE `counter`;
-TRUNCATE TABLE `transaction`;
-TRUNCATE TABLE `transaction_attribute`;
-TRUNCATE TABLE `transaction_signer`;
-TRUNCATE TABLE `transaction_witness`;
-TRUNCATE TABLE `transfer`;
-INSERT INTO `counter`(`id`, `block_index`, `addr_count`) VALUES(1, -1, 0);

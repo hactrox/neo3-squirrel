@@ -1,0 +1,13 @@
+TRUNCATE TABLE `addr_asset`;
+TRUNCATE TABLE `applicationlog`;
+TRUNCATE TABLE `applicationlog_notification`;
+TRUNCATE TABLE `asset`;
+TRUNCATE TABLE `block`;
+TRUNCATE TABLE `block_witness`;
+TRUNCATE TABLE `counter`;
+TRUNCATE TABLE `transaction`;
+TRUNCATE TABLE `transaction_attribute`;
+TRUNCATE TABLE `transaction_signer`;
+TRUNCATE TABLE `transaction_witness`;
+TRUNCATE TABLE `transfer`;
+INSERT INTO `counter`(`id`, `block_index`, `addr_count`) VALUES(1, -1, 0);
