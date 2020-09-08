@@ -88,6 +88,7 @@ func ParseApplicationLog(tx *Transaction, appLogResult *rpc.ApplicationLogResult
 		// Stack: parsed below.
 	}
 
+	appLog.Stack = make([]StackItem, len(appLogResult.Stack))
 	for _, stack := range appLogResult.Stack {
 		appLog.Stack = append(appLog.Stack, StackItem{
 			Type:  stack.Type,
