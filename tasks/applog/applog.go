@@ -113,7 +113,7 @@ func queryAppLog(workers int, preAppLogChan <-chan *models.Transaction) {
 		go func(ch <-chan *models.Transaction) {
 			for tx := range ch {
 				// log.Debugf("prepare to query applicationlog of tx %s", tx.Hash)
-				appLogQueryResult := rpc.GetApplicationLog(int(tx.BlockIndex), tx.Hash)
+				appLogQueryResult := rpc.GetApplicationLog(tx.BlockIndex, tx.Hash)
 				appLogs.Store(tx.Hash, appLogQueryResult)
 				log.Debugf("store applog result into appLogs, txID=%s, len(noti)=%d", tx.Hash, len(appLogQueryResult.Notifications))
 			}
