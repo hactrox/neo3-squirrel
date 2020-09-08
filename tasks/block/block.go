@@ -7,6 +7,7 @@ import (
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
+	"neo3-squirrel/tasks/util"
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/log"
 	"neo3-squirrel/util/progress"
@@ -174,6 +175,11 @@ func store(rawBlocks []*rpc.Block) {
 	maxIndex := int(rawBlocks[len(rawBlocks)-1].Index)
 	blocks := models.ParseBlocks(rawBlocks)
 	txBulk := models.ParseTxs(rawBlocks)
+
+	for _, tx := range txBulk.Txs {
+		tx.SysFee = util.GetReadableAmount(tx.SysFee, big.NewFloat(8))
+		tx.NetFee = util.GetReadableAmount(tx.NetFee, big.NewFloat(8))
+	}
 
 	db.InsertBlock(blocks, txBulk)
 
