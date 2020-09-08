@@ -232,6 +232,12 @@ func BLightCyan(txt string) string {
 	return Render(lightCyan, bold, txt)
 }
 
+// BLightCyanf returns bold light cyan
+func BLightCyanf(format string, a ...interface{}) string {
+	msg := fmt.Sprintf(format, a...)
+	return BLightCyan(msg)
+}
+
 // BWhite returns bold white
 func BWhite(txt string) string {
 	return Render(white, bold, txt)

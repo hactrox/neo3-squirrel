@@ -1,18 +1,13 @@
 package nep5
 
 import (
-	"encoding/base64"
 	"fmt"
-	"math"
-	"math/big"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
-	"neo3-squirrel/rpc"
-	"neo3-squirrel/util/base58"
+	"neo3-squirrel/tasks/util"
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
-	"strconv"
 	"strings"
 	"time"
 )
@@ -125,6 +120,7 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 					transfer := handleNEP5Transfer(noti)
 					if transfer != nil {
 						txTransfers.transfers = append(txTransfers.transfers, transfer)
+						log.Debugf("New NEP5 transfer event detected: %s", transfer.TxID)
 					}
 				default:
 					log.Info("Notification in tx %s not parsed. EventName=%s", txID, noti.EventName)
@@ -160,6 +156,7 @@ func handleNEP5Transfer(noti *models.Notification) *models.Transfer {
 	if noti.State == nil ||
 		noti.State.Type != "Array" ||
 		len(noti.State.Value) != 3 {
+		log.Debug("NEP5 transfer notification state not correct")
 		return nil
 	}
 
@@ -179,23 +176,14 @@ func handleNEP5Transfer(noti *models.Notification) *models.Transfer {
 
 	// Parse Transfer Info.
 	stackItems := noti.State.Value
-	from, ok := extractAddress(stackItems[0].Type, stackItems[0].Value)
+	from, to, amount, ok := util.ExtractNEP5Transfer(stackItems)
 	if !ok {
-		return nil
-	}
-	to, ok := extractAddress(stackItems[1].Type, stackItems[1].Value)
-	if !ok {
-		return nil
-	}
-	amount, ok := extractValue(stackItems[2].Type, stackItems[2].Value)
-	if !ok {
+		log.Debug("Failed to extract NEP5 transfer parameters")
 		return nil
 	}
 
-	decimals, _ := asset.Decimals.Int64()
-	decimalsFactor := math.Pow10(int(decimals))
-	readableAmount := amount.Quo(amount, big.NewFloat(decimalsFactor))
-	transferMsg := color.BLightGreenf("NEP5 transfer: %34s -> %34s, Amount=%s %s",
+	readableAmount := util.GetReadableAmount(amount, asset.Decimals)
+	transferMsg := color.BLightCyanf("NEP5 transfer: %34s -> %34s, Amount=%s %s",
 		from, to, convert.BigFloatToString(readableAmount), asset.Symbol)
 	log.Info(transferMsg)
 
@@ -208,148 +196,22 @@ func handleNEP5Transfer(noti *models.Notification) *models.Transfer {
 		Amount:     readableAmount,
 	}
 
+	log.Debug("New NEP5 transfer parsed")
 	return &transfer
 }
 
 func queryNEP5Info(noti *models.Notification, contract string) *models.Asset {
 	minBlockIndex := noti.BlockIndex
-	name, ok := queryContractName(minBlockIndex, contract)
-	if !ok {
-		return nil
-	}
-	symbol, ok := queryContractSymbol(minBlockIndex, contract)
-	if !ok {
-		return nil
+	asset := &models.Asset{
+		BlockIndex: minBlockIndex,
+		BlockTime:  noti.BlockTime,
+		Contract:   contract,
+		Type:       "nep5",
 	}
 
-	decimals, ok := queryContractDecimals(minBlockIndex, contract)
-	if !ok {
-		return nil
-	}
-
-	totalSupply, ok := queryContractTotalSupply(minBlockIndex, contract)
-	if !ok {
-		return nil
-	}
+	util.QueryAssetBasicInfo(minBlockIndex, asset)
 
 	// log.Debugf("Name=%s, Symbol=%s, Decimals=%v, TotalSupply=%v", name, symbol, decimals, totalSupply)
-	return insertNewAsset(minBlockIndex, noti.BlockTime, contract, name, symbol, decimals, totalSupply)
-}
-
-func insertNewAsset(blockIndex uint, blockTime uint64, contract, name, symbol string, decimals, totalSupply *big.Float) *models.Asset {
-	asset := models.Asset{
-		BlockIndex:  blockIndex,
-		BlockTime:   blockTime,
-		Contract:    contract,
-		Name:        name,
-		Symbol:      symbol,
-		Decimals:    decimals,
-		Type:        "nep5",
-		TotalSupply: totalSupply,
-	}
-
-	db.InsertNewAsset(&asset)
-	return &asset
-}
-
-func queryContractName(minBlockIndex uint, contract string) (string, bool) {
-	stack, ok := queryContractProperty(minBlockIndex, contract, "name")
-	if !ok {
-		return "", false
-	}
-
-	return extractString(stack.Type, stack.Value)
-}
-
-func queryContractSymbol(minBlockIndex uint, contract string) (string, bool) {
-	stack, ok := queryContractProperty(minBlockIndex, contract, "symbol")
-	if !ok {
-		return "", false
-	}
-
-	return extractString(stack.Type, stack.Value)
-}
-
-func queryContractDecimals(minBlockIndex uint, contract string) (*big.Float, bool) {
-	stack, ok := queryContractProperty(minBlockIndex, contract, "decimals")
-	if !ok {
-		return nil, false
-	}
-
-	return extractValue(stack.Type, stack.Value)
-}
-
-func queryContractTotalSupply(minBlockIndex uint, contract string) (*big.Float, bool) {
-	stack, ok := queryContractProperty(minBlockIndex, contract, "totalSupply")
-	if !ok {
-		return nil, false
-	}
-
-	return extractValue(stack.Type, stack.Value)
-}
-
-// name, symbol...
-func queryContractProperty(minBlockIndex uint, contract, property string) (*rpc.StackItem, bool) {
-	result := rpc.InvokeFunction(minBlockIndex, contract, property, nil)
-	if result == nil ||
-		strings.Contains(result.State, "FAULT") ||
-		len(result.Stack) == 0 {
-		return nil, false
-	}
-
-	return &result.Stack[0], true
-}
-
-func extractAddress(typ string, value interface{}) (string, bool) {
-	switch typ {
-	case "Any":
-		return "", true
-	case "ByteString":
-		bytes, err := base64.StdEncoding.DecodeString(value.(string))
-		if err != nil {
-			panic(err)
-		}
-
-		bytes = append([]byte{0x35}, bytes...)
-		return base58.CheckEncode(bytes), true
-	default:
-		err := fmt.Errorf("failed to parse address in type %s and value=%v", typ, value)
-		log.Error(err)
-		return "", false
-	}
-}
-
-func extractString(typ string, value interface{}) (string, bool) {
-	switch typ {
-	case "Any":
-		return "", true
-	case "ByteString":
-		bytes, err := base64.StdEncoding.DecodeString(value.(string))
-		if err != nil {
-			log.Error("Failed to extract value(%v) of 'ByteString' type", value)
-			return "", false
-		}
-
-		return string(bytes), true
-	default:
-		log.Errorf("Unsupported string extract type: %s, value=%v", typ, value)
-		return "", false
-	}
-}
-
-func extractValue(typ string, value interface{}) (*big.Float, bool) {
-	switch typ {
-	case "Boolean":
-		return big.NewFloat(0), true
-	case "Integer":
-		valStr := value.(string)
-		val, err := strconv.ParseInt(valStr, 10, 64)
-		if err != nil {
-			log.Error("Failed to extract value(%v) of 'Integer' type", value)
-			return nil, false
-		}
-		return new(big.Float).SetInt64(val), true
-	default:
-		return nil, false
-	}
+	db.InsertNewAsset(asset)
+	return asset
 }
