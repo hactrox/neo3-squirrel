@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math"
 	"math/big"
+	"neo3-squirrel/models"
 	"neo3-squirrel/util/base58"
 	"neo3-squirrel/util/log"
 	"strconv"
@@ -26,7 +27,10 @@ func GetReadableAmount(amount, decimals *big.Float) *big.Float {
 	return readableAmount
 }
 
-func extractAddress(typ string, value interface{}) (string, bool) {
+func extractAddress(stackItem models.StackItem) (string, bool) {
+	typ := stackItem.Type
+	value := stackItem.Value
+
 	switch typ {
 	case "Any":
 		return "", true
@@ -45,7 +49,10 @@ func extractAddress(typ string, value interface{}) (string, bool) {
 	}
 }
 
-func extractString(typ string, value interface{}) (string, bool) {
+func extractString(stackItem models.StackItem) (string, bool) {
+	typ := stackItem.Type
+	value := stackItem.Value
+
 	switch typ {
 	case "Any":
 		return "", true
@@ -63,7 +70,10 @@ func extractString(typ string, value interface{}) (string, bool) {
 	}
 }
 
-func extractValue(typ string, value interface{}) (*big.Float, bool) {
+func extractValue(stackItem models.StackItem) (*big.Float, bool) {
+	typ := stackItem.Type
+	value := stackItem.Value
+
 	switch typ {
 	case "Boolean":
 		return big.NewFloat(0), true

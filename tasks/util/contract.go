@@ -1,10 +1,10 @@
 package util
 
 import (
-	"log"
 	"math/big"
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
+	"neo3-squirrel/util/log"
 	"strings"
 )
 
@@ -36,6 +36,8 @@ func QueryAssetBasicInfo(minBlockIndex uint, asset *models.Asset) bool {
 		return false
 	}
 
+	asset.TotalSupply = GetReadableAmount(asset.TotalSupply, asset.Decimals)
+
 	return true
 }
 
@@ -45,7 +47,7 @@ func queryContractName(minBlockIndex uint, contract string) (string, bool) {
 		return "", false
 	}
 
-	return extractString(stack.Type, stack.Value)
+	return extractString(models.ParseStackItem(stack))
 }
 
 func queryContractSymbol(minBlockIndex uint, contract string) (string, bool) {
@@ -54,7 +56,7 @@ func queryContractSymbol(minBlockIndex uint, contract string) (string, bool) {
 		return "", false
 	}
 
-	return extractString(stack.Type, stack.Value)
+	return extractString(models.ParseStackItem(stack))
 }
 
 func queryContractDecimals(minBlockIndex uint, contract string) (*big.Float, bool) {
@@ -63,7 +65,7 @@ func queryContractDecimals(minBlockIndex uint, contract string) (*big.Float, boo
 		return nil, false
 	}
 
-	return extractValue(stack.Type, stack.Value)
+	return extractValue(models.ParseStackItem(stack))
 }
 
 func queryContractTotalSupply(minBlockIndex uint, contract string) (*big.Float, bool) {
@@ -72,7 +74,7 @@ func queryContractTotalSupply(minBlockIndex uint, contract string) (*big.Float, 
 		return nil, false
 	}
 
-	return extractValue(stack.Type, stack.Value)
+	return extractValue(models.ParseStackItem(stack))
 }
 
 // name, symbol...

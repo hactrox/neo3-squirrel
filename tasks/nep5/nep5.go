@@ -117,10 +117,10 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 			for _, noti := range notis {
 				switch strings.ToLower(noti.EventName) {
 				case "transfer":
+					log.Debugf("New NEP5 transfer event detected: %s", noti.TxID)
 					transfer := handleNEP5Transfer(noti)
 					if transfer != nil {
 						txTransfers.transfers = append(txTransfers.transfers, transfer)
-						log.Debugf("New NEP5 transfer event detected: %s", transfer.TxID)
 					}
 				default:
 					log.Info("Notification in tx %s not parsed. EventName=%s", txID, noti.EventName)
@@ -142,8 +142,49 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 
 func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 	for txTransfers := range transferChan {
-		// TODO: persist info.
-		db.InsertNEP5Transfers(txTransfers.transfers)
+		if len(txTransfers.transfers) == 0 {
+			continue
+		}
+
+		addrAssets := []*models.AddrAsset{}
+		queried := map[string]bool{}
+
+		for _, transfer := range txTransfers.transfers {
+			minBlockIndex := transfer.BlockIndex
+			contract := transfer.Contract
+			asset := nep5Assets[contract]
+			addrs := []string{}
+			if len(transfer.From) > 0 {
+				addrs = append(addrs, transfer.From)
+			}
+			if len(transfer.To) > 0 {
+				addrs = append(addrs, transfer.To)
+			}
+
+			for _, addr := range addrs {
+				// Filter this query if alreadt queried.
+				if _, ok := queried[addr+contract]; ok {
+					continue
+				}
+
+				amount, ok := util.QueryNEP5Balance(minBlockIndex, addr, contract)
+				if !ok {
+					continue
+				}
+
+				addrAsset := models.AddrAsset{
+					Address:  addr,
+					Contract: contract,
+					Balance:  util.GetReadableAmount(amount, asset.Decimals),
+				}
+
+				addrAssets = append(addrAssets, &addrAsset)
+				queried[addr+contract] = true
+			}
+		}
+
+		// Query balances.
+		db.InsertNEP5Transfers(txTransfers.transfers, addrAssets)
 	}
 }
 
@@ -166,7 +207,8 @@ func handleNEP5Transfer(noti *models.Notification) *models.Transfer {
 	if nep5Asset, ok := nep5Assets[contract]; ok {
 		asset = nep5Asset
 	} else {
-		asset = queryNEP5Info(noti, contract)
+		asset = queryNEP5AssetInfo(noti, contract)
+		nep5Assets[asset.Contract] = asset
 	}
 
 	if asset == nil {
@@ -191,6 +233,7 @@ func handleNEP5Transfer(noti *models.Notification) *models.Transfer {
 		BlockIndex: noti.BlockIndex,
 		BlockTime:  noti.BlockTime,
 		TxID:       noti.TxID,
+		Contract:   noti.Contract,
 		From:       from,
 		To:         to,
 		Amount:     readableAmount,
@@ -200,7 +243,7 @@ func handleNEP5Transfer(noti *models.Notification) *models.Transfer {
 	return &transfer
 }
 
-func queryNEP5Info(noti *models.Notification, contract string) *models.Asset {
+func queryNEP5AssetInfo(noti *models.Notification, contract string) *models.Asset {
 	minBlockIndex := noti.BlockIndex
 	asset := &models.Asset{
 		BlockIndex: minBlockIndex,

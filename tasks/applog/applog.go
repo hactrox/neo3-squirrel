@@ -7,7 +7,6 @@ import (
 	"neo3-squirrel/rpc"
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/log"
-	"neo3-squirrel/util/progress"
 	"sync"
 	"time"
 )
@@ -15,8 +14,6 @@ import (
 const chanSize = 5000
 
 var (
-	prog = progress.New()
-
 	// appLogs stores txID with its applocationlog rpc query result.
 	appLogs sync.Map
 )

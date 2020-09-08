@@ -121,3 +121,11 @@ func ParseApplicationLog(tx *Transaction, appLogResult *rpc.ApplicationLogResult
 
 	return appLog
 }
+
+// ParseStackItem convert rpc.StackItem to models.StackItem.
+func ParseStackItem(rawStackItem *rpc.StackItem) StackItem {
+	return StackItem{
+		Type:  rawStackItem.Type,
+		Value: rawStackItem.Value,
+	}
+}

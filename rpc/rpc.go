@@ -33,7 +33,7 @@ func generateRequestBody(method string, params []interface{}) string {
 	p := ""
 
 	for _, param := range params {
-		switch param.(type) {
+		switch param := param.(type) {
 		case int8, uint8,
 			int16, uint16,
 			int, uint,
@@ -42,6 +42,12 @@ func generateRequestBody(method string, params []interface{}) string {
 			p += fmt.Sprintf("%d, ", param)
 		case string:
 			p += fmt.Sprintf("\"%s\", ", param)
+		case []StackItem:
+			parsed := ""
+			for _, stackItem := range param {
+				parsed += fmt.Sprintf(", {\"type\": \"%s\", \"value\": \"%s\"}", stackItem.Type, stackItem.Value)
+			}
+			p += fmt.Sprintf("[%s], ", parsed[2:])
 		default:
 			err := fmt.Errorf("the RPC parameter type must be integer or string. current type=%T, value=%v", param, param)
 			panic(err)

@@ -74,7 +74,7 @@ func GetAllAssets(typ string) []*models.Asset {
 // InsertNewAsset persists new asset into DB.
 func InsertNewAsset(asset *models.Asset) {
 	if asset == nil {
-		err := fmt.Errorf("Cannot insert nil asset into database")
+		err := fmt.Errorf("cannot insert nil asset into database")
 		log.Panic(err)
 	}
 
