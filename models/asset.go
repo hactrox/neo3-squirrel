@@ -29,8 +29,9 @@ type Transfer struct {
 
 // AddrAsset db model.
 type AddrAsset struct {
-	ID       uint
-	Address  string
-	Contract string
-	Balance  *big.Float
+	ID        uint
+	Address   string
+	Contract  string
+	Balance   *big.Float
+	Transfers int
 }

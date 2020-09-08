@@ -147,7 +147,7 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 		}
 
 		addrAssets := []*models.AddrAsset{}
-		queried := map[string]bool{}
+		addrTransfers := make(map[string]*models.AddrAsset)
 
 		for _, transfer := range txTransfers.transfers {
 			minBlockIndex := transfer.BlockIndex
@@ -163,7 +163,8 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 
 			for _, addr := range addrs {
 				// Filter this query if alreadt queried.
-				if _, ok := queried[addr+contract]; ok {
+				if addrAsset, ok := addrTransfers[addr+contract]; ok {
+					addrAsset.Transfers++
 					continue
 				}
 
@@ -173,13 +174,14 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 				}
 
 				addrAsset := models.AddrAsset{
-					Address:  addr,
-					Contract: contract,
-					Balance:  util.GetReadableAmount(amount, asset.Decimals),
+					Address:   addr,
+					Contract:  contract,
+					Balance:   util.GetReadableAmount(amount, asset.Decimals),
+					Transfers: 1, // Number of contract transfers added.
 				}
 
 				addrAssets = append(addrAssets, &addrAsset)
-				queried[addr+contract] = true
+				addrTransfers[addr+contract] = &addrAsset
 			}
 		}
 

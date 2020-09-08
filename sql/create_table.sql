@@ -112,6 +112,7 @@ CREATE TABLE IF NOT EXISTS `transfer`
     `block_index`    INT UNSIGNED  NOT NULL,
     `block_time`  BIGINT UNSIGNED  NOT NULL,
     `txid`               CHAR(66)  NOT NULL,
+    `contract`           CHAR(42)  NOT NULL,
     `from`               CHAR(34)  NOT NULL,
     `to`                 CHAR(34)  NOT NULL,
     `amount`       DECIMAL(35, 8)  NOT NULL
@@ -121,9 +122,10 @@ CREATE TABLE IF NOT EXISTS `transfer`
 CREATE TABLE IF NOT EXISTS `addr_asset`
 (
     `id`         INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `address`        CHAR(34)  NOT NULL,
     `contract`       CHAR(42)  NOT NULL,
-    `balance`  DECIMAL(35, 8)  NOT NULL
+    `address`        CHAR(34)  NOT NULL,
+    `balance`  DECIMAL(35, 8)  NOT NULL,
+    `transfers`  INT UNSIGNED  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 

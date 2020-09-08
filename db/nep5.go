@@ -16,9 +16,18 @@ var transferColumns = []string{
 	"`block_index`",
 	"`block_time`",
 	"`txid`",
+	"`contract`",
 	"`from`",
 	"`to`",
 	"`amount`",
+}
+
+var addrAssetColumns = []string{
+	"`id`",
+	"`contract`",
+	"`address`",
+	"`balance`",
+	"`transfers`",
 }
 
 // InsertNEP5Transfers inserts NEP5 transfers of a transactions into DB.
@@ -55,6 +64,7 @@ func insertNEP5Transfer(sqlTx *sql.Tx, transfers []*models.Transfer) error {
 			transfer.BlockIndex,
 			transfer.BlockTime,
 			transfer.TxID,
+			transfer.Contract,
 			transfer.From,
 			transfer.To,
 			fmt.Sprintf("%.8f", transfer.Amount),
@@ -92,6 +102,7 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 		contract := addrAsset.Contract
 		address := addrAsset.Address
 		balance := addrAsset.Balance
+		newTransfers := addrAsset.Transfers
 
 		// Check if record already exists.
 		addrAssetRec, err := getNEP5AddrAssetRecord(sqlTx, address, contract)
@@ -100,17 +111,18 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 		}
 
 		if addrAssetRec == nil {
-			insertsStrBuilder.WriteString(fmt.Sprintf(", ('%s', '%s', %.8f)", address, contract, balance))
+			insertsStrBuilder.WriteString(fmt.Sprintf(", ('%s', '%s', %.8f, %d)", contract, address, balance, 1))
 			continue
 		}
 
-		if addrAssetRec.Balance.Cmp(balance) == 0 {
-			continue
-		}
+		// if addrAssetRec.Balance.Cmp(balance) == 0 {
+		// 	continue
+		// }
 
 		updateSQL := []string{
 			"UPDATE `addr_asset`",
 			fmt.Sprintf("SET `balance`=%.8f", balance),
+			fmt.Sprintf(", `transfers`=`transfers`+%d", newTransfers),
 			fmt.Sprintf("WHERE `contract`='%s' AND `address`='%s'", contract, address),
 			"LIMIT 1;",
 		}
@@ -120,7 +132,7 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 
 	sql := ""
 	if insertsStrBuilder.Len() > 0 {
-		sql += "INSERT INTO `addr_asset`(`address`, `contract`, `balance`) VALUES "
+		sql += fmt.Sprintf("INSERT INTO `addr_asset`(%s) VALUES ", strings.Join(addrAssetColumns[1:], ", "))
 		sql += insertsStrBuilder.String()[2:] + ";"
 	}
 	sql += updatesStrBuilder.String()
@@ -135,15 +147,8 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 }
 
 func getNEP5AddrAssetRecord(sqlTx *sql.Tx, address, contract string) (*models.AddrAsset, error) {
-	columns := []string{
-		"`id`",
-		"`address`",
-		"`contract`",
-		"`balance`",
-	}
-
 	query := []string{
-		fmt.Sprintf("SELECT %s", strings.Join(columns, ", ")),
+		fmt.Sprintf("SELECT %s", strings.Join(addrAssetColumns, ", ")),
 		"FROM `addr_asset`",
 		fmt.Sprintf("WHERE `contract` = '%s' AND `address` = '%s'", contract, address),
 		"LIMIT 1",
@@ -153,9 +158,10 @@ func getNEP5AddrAssetRecord(sqlTx *sql.Tx, address, contract string) (*models.Ad
 	var balanceStr string
 	err := mysql.QueryRow(mysql.Compose(query), nil,
 		&addrAsset.ID,
-		&addrAsset.Address,
 		&addrAsset.Contract,
+		&addrAsset.Address,
 		&balanceStr,
+		&addrAsset.Transfers,
 	)
 	if err != nil {
 		if mysql.IsRecordNotFoundError(err) {
