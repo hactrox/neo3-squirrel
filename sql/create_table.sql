@@ -1,9 +1,8 @@
 CREATE TABLE IF NOT EXISTS `counter`
 (
-    `id`             INT UNSIGNED auto_increment PRIMARY KEY,
-    `block_index`    INT          NOT NULL,
-    `tx_pk`          INT UNSIGNED NOT NULL,
-    `addr_count`     INT UNSIGNED NOT NULL
+    `id`          INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `block_index`          INT  NOT NULL,
+    `addr_count`  INT UNSIGNED  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 INSERT INTO `counter`(`id`, `block_index`, `tx_pk`, `addr_count`) VALUES(1, -1, 0, 0);
@@ -11,71 +10,161 @@ INSERT INTO `counter`(`id`, `block_index`, `tx_pk`, `addr_count`) VALUES(1, -1, 
 
 CREATE TABLE IF NOT EXISTS `block`
 (
-    `id`             INT UNSIGNED auto_increment PRIMARY KEY,
-    `hash` CHAR(66) NOT NULL,
-    `size` INT UNSIGNED NOT NULL,
-    `version` INT UNSIGNED NOT NULL,
-    `previous_block_hash` CHAR(66) NOT NULL,
-    `merkleroot` CHAR(66) NOT NULL,
-    `txs` INT UNSIGNED NOT NULL,
-    `time` BIGINT UNSIGNED NOT NULL,
-    `index` INT UNSIGNED NOT NULL,
-    `nextconsensus` CHAR(66) NOT NULL,
-    `consensusdata_primary` SMALLINT NOT NULL,
-    `consensusdata_nonce` VARCHAR(16) NOT NULL,
-    `nextblockhash` CHAR(66) NOT NULL
+    `id`                  INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `hash`                    CHAR(66)  NOT NULL,
+    `size`                INT UNSIGNED  NOT NULL,
+    `version`             INT UNSIGNED  NOT NULL,
+    `previous_block_hash`     CHAR(66)  NOT NULL,
+    `merkleroot`              CHAR(66)  NOT NULL,
+    `txs`                 INT UNSIGNED  NOT NULL,
+    `time`             BIGINT UNSIGNED  NOT NULL,
+    `index`               INT UNSIGNED  NOT NULL,
+    `nextconsensus`           CHAR(66)  NOT NULL,
+    `consensusdata_primary`   SMALLINT  NOT NULL,
+    `consensusdata_nonce`  VARCHAR(16)  NOT NULL,
+    `nextblockhash`           CHAR(66)  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
 CREATE TABLE IF NOT EXISTS `block_witness`
 (
-    `id`             INT UNSIGNED auto_increment PRIMARY KEY,
-    `block_hash` CHAR(66) NOT NULL,
-    `invocation` TEXT NOT NULL,
-    `verification` TEXT NOT NULL
+    `id`      INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `block_hash`  CHAR(66)  NOT NULL,
+    `invocation`      TEXT  NOT NULL,
+    `verification`    TEXT  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
 CREATE TABLE IF NOT EXISTS `transaction`
 (
-    `id`             INT UNSIGNED auto_increment PRIMARY KEY,
-    `block_index` INT UNSIGNED NOT NULL,
-    `block_time` BIGINT UNSIGNED NOT NULL,
-    `hash` CHAR(66) NOT NULL,
-    `size` INT UNSIGNED NOT NULL,
-    `version` INT UNSIGNED NOT NULL,
-    `nonce` BIGINT UNSIGNED NOT NULL,
-    `sender` CHAR(34) NOT NULL,
-    `sysfee` DECIMAL(27, 8) NOT NULL,
-    `netfee` DECIMAL(27, 8) NOT NULL,
-    `valid_until_block` INT NOT NULL,
-    `script` MEDIUMTEXT NOT NULL
+    `id`                 INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `block_index`        INT UNSIGNED  NOT NULL,
+    `block_time`      BIGINT UNSIGNED  NOT NULL,
+    `hash`                   CHAR(66)  NOT NULL,
+    `size`               INT UNSIGNED  NOT NULL,
+    `version`            INT UNSIGNED  NOT NULL,
+    `nonce`           BIGINT UNSIGNED  NOT NULL,
+    `sender`                 CHAR(34)  NOT NULL,
+    `sysfee`           DECIMAL(27, 8)  NOT NULL,
+    `netfee`           DECIMAL(27, 8)  NOT NULL,
+    `valid_until_block`  INT UNSIGNED  NOT NULL,
+    `script`               MEDIUMTEXT  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
 CREATE TABLE IF NOT EXISTS `transaction_signer`
 (
-    `id`             INT UNSIGNED auto_increment PRIMARY KEY,
-    `transaction_hash` CHAR(66) NOT NULL,
-    `account` CHAR(34) NOT NULL,
-    `scopes` VARCHAR(32) NOT NULL
+    `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `transaction_hash`  CHAR(66)  NOT NULL,
+    `account`           CHAR(34)  NOT NULL,
+    `scopes`         VARCHAR(32)  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
 CREATE TABLE IF NOT EXISTS `transaction_attribute`
 (
-    `id`             INT UNSIGNED auto_increment PRIMARY KEY,
-    `transaction_hash` CHAR(66) NOT NULL,
-    `type` VARCHAR(32) NOT NULL
+    `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `transaction_hash`  CHAR(66)  NOT NULL,
+    `type`           VARCHAR(32)  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
 CREATE TABLE IF NOT EXISTS `transaction_witness`
 (
-    `id`             INT UNSIGNED auto_increment PRIMARY KEY,
-    `transaction_hash` CHAR(66) NOT NULL,
-    `invocation` TEXT NOT NULL,
-    `verification` TEXT NOT NULL
+    `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `transaction_hash`  CHAR(66)  NOT NULL,
+    `invocation`            TEXT  NOT NULL,
+    `verification`          TEXT  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
+CREATE TABLE IF NOT EXISTS `applicationlog`
+(
+    `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `txid`               CHAR(66)  NOT NULL,
+    `trigger`         VARCHAR(16)  NOT NULL,
+    `vmstate`          VARCHAR(8)  NOT NULL,
+    `gasconsumed`  DECIMAL(27, 8)  NOT NULL,
+    `stack`                  JSON  NOT NULL,
+    `notifications`  INT UNSIGNED  NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
+
+
+CREATE TABLE IF NOT EXISTS `applicationlog_notification`
+(
+    `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `txid`               CHAR(66)  NOT NULL,
+    `block_index`    INT UNSIGNED  NOT NULL,
+    `block_time`  BIGINT UNSIGNED  NOT NULL,
+    `vmstate`          VARCHAR(8)  NOT NULL,
+    `contract`           CHAR(42)  NOT NULL,
+    `eventname`       VARCHAR(64)  NOT NULL,
+    `state`                  JSON  NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
+
+
+-- Extra Tables
+
+
+CREATE TABLE IF NOT EXISTS `transfer`
+(
+    `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `block_index`    INT UNSIGNED  NOT NULL,
+    `block_time`  BIGINT UNSIGNED  NOT NULL,
+    `txid`               CHAR(66)  NOT NULL,
+    `from`               CHAR(34)  NOT NULL,
+    `to`                 CHAR(34)  NOT NULL,
+    `amount`       DECIMAL(35, 8)  NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
+
+
+CREATE TABLE IF NOT EXISTS `addr_asset`
+(
+    `id`         INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `address`        CHAR(34)  NOT NULL,
+    `contract`       CHAR(42)  NOT NULL,
+    `balance`  DECIMAL(35, 8)  NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
+
+
+CREATE TABLE IF NOT EXISTS `asset`
+(
+    `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `block_index`     INT UNSIGNED  NOT NULL,
+    `block_time`   BIGINT UNSIGNED  NOT NULL,
+    `contract`            CHAR(42)  NOT NULL,
+    `name`             VARCHAR(64)  NOT NULL,
+    `symbol`           VARCHAR(32)  NOT NULL,
+    `decimals`    TINYINT UNSIGNED  NOT NULL,
+    `type`             VARCHAR(16)  NOT NULL,
+    `total_supply`  DECIMAL(35, 8)  NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
+
+
+-- Validations
+
+SET @blockCount := (SELECT COUNT(`index`) FROM `block`);
+SET @blockIndex := (SELECT `block_index` FROM `counter`);
+
+SELECT 'Neo3 Squirrel SQL Validation', 'Result'
+UNION ALL
+SELECT 'check block count', IF((SELECT COUNT(`index`) FROM `block`) - (SELECT `block_index` FROM `counter`) = 1, 'PASS', 'FAIL')
+UNION ALL
+SELECT 'check notification count', IF((SELECT SUM(`notifications`) FROM `applicationlog`) - (SELECT COUNT(`id`) FROM `applicationlog_notification`)=0, 'PASS', 'FAIL')
+UNION ALL
+SELECT 'check transaction count', IF((SELECT SUM(`txs`) FROM `block`) - (SELECT COUNT(`id`) FROM `transaction`)=0, 'PASS', 'FAIL');
+
+-- Reset all
+TRUNCATE TABLE `addr_asset`;
+TRUNCATE TABLE `applicationlog`;
+TRUNCATE TABLE `applicationlog_notification`;
+TRUNCATE TABLE `asset`;
+TRUNCATE TABLE `block`;
+TRUNCATE TABLE `block_witness`;
+TRUNCATE TABLE `counter`;
+TRUNCATE TABLE `transaction`;
+TRUNCATE TABLE `transaction_attribute`;
+TRUNCATE TABLE `transaction_signer`;
+TRUNCATE TABLE `transaction_witness`;
+TRUNCATE TABLE `transfer`;
+INSERT INTO `counter`(`id`, `block_index`, `addr_count`) VALUES(1, -1, 0);
