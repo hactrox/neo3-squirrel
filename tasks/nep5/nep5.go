@@ -211,6 +211,7 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 		if len(txTransfers.transfers) > 0 ||
 			len(addrAssets) > 0 {
 			db.InsertNEP5Transfers(txTransfers.transfers, addrAssets)
+			showTransfers(txTransfers.transfers)
 		}
 	}
 }
@@ -252,9 +253,6 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 	}
 
 	readableAmount := convert.AmountReadable(amount, asset.Decimals)
-	transferMsg := color.BLightCyanf("NEP5 transfer: %34s -> %34s, Amount=%s %s",
-		from, to, convert.BigFloatToString(readableAmount), asset.Symbol)
-	log.Info(transferMsg)
 
 	transfer := models.Transfer{
 		BlockIndex: noti.BlockIndex,
@@ -339,4 +337,38 @@ func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {
 	}
 
 	return len(addrAssets) > 0
+}
+
+func showTransfers(transfers []*models.Transfer) {
+	for _, transfer := range transfers {
+		from := transfer.From
+		to := transfer.To
+		amount := transfer.Amount
+		contract := transfer.Contract
+		asset, ok := nep5Assets[contract]
+		if !ok {
+			log.Panicf("Failed to get asset info of contract %s", contract)
+		}
+
+		msg := ""
+		amountStr := convert.BigFloatToString(amount)
+
+		if len(from) == 0 {
+			// Claim GAS.
+			if contract == util.GAS {
+				msg = fmt.Sprintf("GAS claimed: %s %s -> %s", amountStr, asset.Symbol, to)
+			} else {
+				msg = fmt.Sprintf("Mint token: %s %s -> %s", amountStr, asset.Symbol, to)
+			}
+		} else {
+			if len(to) == 0 {
+				msg = fmt.Sprintf("Destroy token: %s destroyed %s %s", from, amount, asset.Symbol)
+			} else {
+				msg = fmt.Sprintf("NEP5 transfer: %34s -> %34s, Amount=%s %s",
+					from, to, amountStr, asset.Symbol)
+			}
+		}
+
+		log.Info(color.BLightCyanf(msg))
+	}
 }
