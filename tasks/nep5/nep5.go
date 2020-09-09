@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
+	"neo3-squirrel/rpc"
 	"neo3-squirrel/tasks/util"
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/convert"
@@ -172,6 +173,24 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 					continue
 				}
 
+				if minBlockIndex > 0 &&
+					int(minBlockIndex) == rpc.GetBestHeight() &&
+					contract == util.GAS {
+					// Check if `from` address is the transaction sender address.
+					tx, ok := util.GetCachedTransaction(transfer.TxID)
+					if !ok {
+						tx = db.GetTransaction(transfer.TxID)
+					}
+					if tx == nil {
+						err := fmt.Errorf("failed to find transaction %s", transfer.TxID)
+						log.Panic(err)
+					}
+
+					if addr == tx.Sender {
+						time.Sleep(1 * time.Second)
+					}
+				}
+
 				amount, ok := util.QueryNEP5Balance(minBlockIndex, addr, contract)
 				if !ok {
 					continue
@@ -180,7 +199,7 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 				addrAsset := models.AddrAsset{
 					Address:   addr,
 					Contract:  contract,
-					Balance:   util.GetReadableAmount(amount, asset.Decimals),
+					Balance:   convert.AmountReadable(amount, asset.Decimals),
 					Transfers: 1, // Number of contract transfers added.
 				}
 
@@ -232,7 +251,7 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 		return nil
 	}
 
-	readableAmount := util.GetReadableAmount(amount, asset.Decimals)
+	readableAmount := convert.AmountReadable(amount, asset.Decimals)
 	transferMsg := color.BLightCyanf("NEP5 transfer: %34s -> %34s, Amount=%s %s",
 		from, to, convert.BigFloatToString(readableAmount), asset.Symbol)
 	log.Info(transferMsg)

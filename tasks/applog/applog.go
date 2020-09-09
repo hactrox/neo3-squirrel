@@ -2,12 +2,11 @@ package applog
 
 import (
 	"fmt"
-	"math/big"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
-	"neo3-squirrel/tasks/util"
 	"neo3-squirrel/util/color"
+	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
 	"sync"
 	"time"
@@ -130,7 +129,7 @@ func handleApplicationLogs(appLogChan <-chan *appLogResult) {
 
 		// Store applicationlog result
 		appLog := models.ParseApplicationLog(tx, logResult)
-		appLog.GasConsumed = util.GetReadableAmount(appLog.GasConsumed, big.NewFloat(8))
+		appLog.GasConsumed = convert.AmountReadable(appLog.GasConsumed, 8)
 		db.InsertApplicationLog(&appLog)
 	}
 }

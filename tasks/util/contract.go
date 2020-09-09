@@ -4,6 +4,7 @@ import (
 	"math/big"
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
+	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
 	"strings"
 )
@@ -26,17 +27,23 @@ func QueryAssetBasicInfo(minBlockIndex uint, asset *models.Asset) bool {
 		return false
 	}
 
-	asset.Decimals, ok = queryContractDecimals(minBlockIndex, contract)
+	decimals, ok := queryContractDecimals(minBlockIndex, contract)
 	if !ok {
 		return false
 	}
+
+	dec, accuracy := decimals.Int64()
+	if accuracy != big.Exact {
+		return false
+	}
+	asset.Decimals = uint(dec)
 
 	asset.TotalSupply, ok = queryContractTotalSupply(minBlockIndex, contract)
 	if !ok {
 		return false
 	}
 
-	asset.TotalSupply = GetReadableAmount(asset.TotalSupply, asset.Decimals)
+	asset.TotalSupply = convert.AmountReadable(asset.TotalSupply, asset.Decimals)
 
 	return true
 }

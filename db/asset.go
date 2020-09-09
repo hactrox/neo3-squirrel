@@ -44,7 +44,6 @@ func GetAllAssets(typ string) []*models.Asset {
 	assets := []*models.Asset{}
 	for rows.Next() {
 		asset := models.Asset{}
-		var decimalsStr string
 		var totalSupplyStr string
 
 		err := rows.Scan(
@@ -54,7 +53,7 @@ func GetAllAssets(typ string) []*models.Asset {
 			&asset.Contract,
 			&asset.Name,
 			&asset.Symbol,
-			&decimalsStr,
+			&asset.Decimals,
 			&asset.Type,
 			&totalSupplyStr,
 		)
@@ -62,7 +61,6 @@ func GetAllAssets(typ string) []*models.Asset {
 			log.Panic(err)
 		}
 
-		asset.Decimals = convert.ToDecimal(decimalsStr)
 		asset.TotalSupply = convert.ToDecimal(totalSupplyStr)
 
 		assets = append(assets, &asset)
@@ -126,7 +124,7 @@ func insertNewAsset(sqlTx *sql.Tx, asset *models.Asset) error {
 		asset.Contract,
 		asset.Name,
 		asset.Symbol,
-		fmt.Sprintf("%.8f", asset.Decimals),
+		asset.Decimals,
 		asset.Type,
 		fmt.Sprintf("%.8f", asset.TotalSupply),
 	}

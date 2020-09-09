@@ -52,6 +52,16 @@ type TransactionWitness struct {
 	Verification    string
 }
 
+// ParseTx parses all *rpc.Transaction in the given block to *models.Transaction.
+func ParseTx(block *rpc.Block) []*Transaction {
+	txs := []*Transaction{}
+	for _, tx := range block.Tx {
+		txs = appendTx(txs, block.Index, block.Time, &tx)
+	}
+
+	return txs
+}
+
 // ParseTxs parses all raw transactions in raw blocks to Bulk.
 func ParseTxs(blocks []*rpc.Block) *TxBulk {
 	bulk := TxBulk{}

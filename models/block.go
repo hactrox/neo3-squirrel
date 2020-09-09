@@ -17,8 +17,14 @@ type Block struct {
 	Witnesses            []Witness
 	ConsensusDataPrimary uint64
 	ConsensusDataNonce   string
-	// Tx array
-	NextBlockHash string
+	NextBlockHash        string
+
+	txs []*Transaction
+}
+
+// GetTxs returns all transactions in this block.
+func (block *Block) GetTxs() []*Transaction {
+	return block.txs
 }
 
 // ParseBlocks parses struct RawBlock to struct Block.
@@ -39,6 +45,7 @@ func ParseBlocks(rawBlocks []*rpc.Block) []*Block {
 			ConsensusDataNonce:   rawBlock.ConsensusData.Nonce,
 			ConsensusDataPrimary: rawBlock.ConsensusData.Primary,
 			NextBlockHash:        rawBlock.NextBlockHash,
+			txs:                  ParseTx(rawBlock),
 		}
 
 		for _, witness := range rawBlock.Witnesses {

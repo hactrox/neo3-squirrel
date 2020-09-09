@@ -3,6 +3,7 @@ package convert
 import (
 	"encoding/hex"
 	"fmt"
+	"math"
 	"math/big"
 	"strings"
 )
@@ -35,6 +36,15 @@ func DecimalNeg(val *big.Float) *big.Float {
 func ToDecimal(valueStr string) *big.Float {
 	value, _ := new(big.Float).SetPrec(decimalPrecision).SetString(valueStr)
 	return value
+}
+
+// AmountReadable returns decimals-formatted amount.
+// E.g., 100000000 unit of GAS with 8 decimals will return 1.
+func AmountReadable(amount *big.Float, decimals uint) *big.Float {
+	decimalsFactor := big.NewFloat(math.Pow10(int(decimals)))
+	readableAmount := new(big.Float).Quo(amount, decimalsFactor)
+
+	return readableAmount
 }
 
 // BigFloatToString converts big.Float to string.

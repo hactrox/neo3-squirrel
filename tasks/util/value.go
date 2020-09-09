@@ -3,28 +3,17 @@ package util
 import (
 	"encoding/base64"
 	"fmt"
-	"math"
 	"math/big"
 	"neo3-squirrel/models"
 	"neo3-squirrel/util/log"
 	"strconv"
 )
 
-// GetReadableAmount returns decimals-formatted amount.
-// E.g., 100000000 unit of GAS with 8 decimals will return 1.
-func GetReadableAmount(amount, decimals *big.Float) *big.Float {
-	dec, accuracy := decimals.Int64()
-	if accuracy != big.Exact {
-
-		err := fmt.Errorf("decimals convert from *big.Float to int64 not accurate")
-		log.Panic(err)
-	}
-
-	decimalsFactor := big.NewFloat(math.Pow10(int(dec)))
-	readableAmount := new(big.Float).Quo(amount, decimalsFactor)
-
-	return readableAmount
-}
+// NEO & GAS contract hash
+const (
+	NEO = "0xde5f57d430d3dece511cf975a8d37848cb9e0525"
+	GAS = "0x668e0c1f9d7b70a99dd9e06eadd4c784d641afbc"
+)
 
 func extractAddress(stackItem models.StackItem) (string, bool) {
 	typ := stackItem.Type

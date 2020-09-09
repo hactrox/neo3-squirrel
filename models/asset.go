@@ -10,7 +10,7 @@ type Asset struct {
 	Contract    string
 	Name        string
 	Symbol      string
-	Decimals    *big.Float
+	Decimals    uint
 	Type        string
 	TotalSupply *big.Float
 }

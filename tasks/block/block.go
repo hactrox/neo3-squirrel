@@ -9,6 +9,7 @@ import (
 	"neo3-squirrel/rpc"
 	"neo3-squirrel/tasks/util"
 	"neo3-squirrel/util/color"
+	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
 	"neo3-squirrel/util/progress"
 	"neo3-squirrel/util/timeutil"
@@ -177,10 +178,11 @@ func store(rawBlocks []*rpc.Block) {
 	txBulk := models.ParseTxs(rawBlocks)
 
 	for _, tx := range txBulk.Txs {
-		tx.SysFee = util.GetReadableAmount(tx.SysFee, big.NewFloat(8))
-		tx.NetFee = util.GetReadableAmount(tx.NetFee, big.NewFloat(8))
+		tx.SysFee = convert.AmountReadable(tx.SysFee, 8)
+		tx.NetFee = convert.AmountReadable(tx.NetFee, 8)
 	}
 
+	util.CacheBlocks(blocks)
 	db.InsertBlock(blocks, txBulk)
 
 	// Auxiliary signal for tx task.
