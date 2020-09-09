@@ -23,3 +23,9 @@ func (c *SafeCounter) Set(v int) {
 func (c *SafeCounter) Add(delta int) int {
 	return int(atomic.AddInt32(&c.val, int32(delta)))
 }
+
+// SetIfHigher updates current value if the given integer
+// is great than the current one.
+func (c *SafeCounter) SetIfHigher(v int) bool {
+	return atomic.CompareAndSwapInt32(&c.val, int32(v-1), int32(v))
+}

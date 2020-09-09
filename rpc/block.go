@@ -42,5 +42,10 @@ func SyncBlock(index uint) *Block {
 	respData := BlockResponse{}
 	call(index, args, &respData)
 
-	return respData.Result
+	block := respData.Result
+	if block != nil && block.Index > 0 {
+		bestHeight.SetIfHigher(int(block.Index))
+	}
+
+	return block
 }

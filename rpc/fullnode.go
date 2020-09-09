@@ -16,9 +16,9 @@ import (
 )
 
 var (
-	// map[host]height -> map[string]int
-	nodeHeight sync.Map
-	reqLock    sync.RWMutex
+	// map[host(string)]height(int)
+	nodeHeights sync.Map
+	reqLock     sync.RWMutex
 
 	bestHeight counter.SafeCounter
 )
@@ -31,7 +31,7 @@ type nodeInfo struct {
 func getNodes() map[string]int {
 	mp := make(map[string]int)
 
-	nodeHeight.Range(func(key interface{}, value interface{}) bool {
+	nodeHeights.Range(func(key interface{}, value interface{}) bool {
 		host := key.(string)
 		height := value.(int)
 
@@ -44,7 +44,7 @@ func getNodes() map[string]int {
 
 func updateNodes(mp map[string]int) {
 	for host, height := range mp {
-		nodeHeight.Store(host, height)
+		nodeHeights.Store(host, height)
 	}
 }
 
