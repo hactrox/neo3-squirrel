@@ -111,13 +111,14 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 		}
 
 		if addrAssetRec == nil {
-			insertsStrBuilder.WriteString(fmt.Sprintf(", ('%s', '%s', %.8f, %d)", contract, address, balance, 1))
+			insertsStrBuilder.WriteString(fmt.Sprintf(", ('%s', '%s', %.8f, %d)", contract, address, balance, newTransfers))
 			continue
 		}
 
-		// if addrAssetRec.Balance.Cmp(balance) == 0 {
-		// 	continue
-		// }
+		if addrAssetRec.Balance.Cmp(balance) == 0 &&
+			newTransfers == 0 {
+			continue
+		}
 
 		updateSQL := []string{
 			"UPDATE `addr_asset`",
@@ -174,4 +175,12 @@ func getNEP5AddrAssetRecord(sqlTx *sql.Tx, address, contract string) (*models.Ad
 
 	addrAsset.Balance = convert.ToDecimal(balanceStr)
 	return &addrAsset, nil
+}
+
+// PersistNEP5Balances inserts and updates address contract balances.
+func PersistNEP5Balances(addrAssets []*models.AddrAsset) {
+	mysql.Trans(func(sqlTx *sql.Tx) error {
+		updateNEP5Balances(sqlTx, addrAssets)
+		return nil
+	})
 }

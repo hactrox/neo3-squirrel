@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"neo3-squirrel/util/base58"
 	"neo3-squirrel/util/byteutil"
@@ -16,4 +17,16 @@ func GetAddrScriptHash(address string) string {
 
 	bytes = bytes[1:21]
 	return hex.EncodeToString(byteutil.ReverseBytes(bytes))
+}
+
+// ExtractAddressFromByteString converts Neo address from byte string.
+func ExtractAddressFromByteString(byteString string) (string, bool) {
+	bytes, err := base64.StdEncoding.DecodeString(byteString)
+	if err != nil {
+		return "", false
+	}
+
+	bytes = append([]byte{0x35}, bytes...)
+	return base58.CheckEncode(bytes), true
+
 }

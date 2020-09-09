@@ -6,7 +6,6 @@ import (
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
 	"neo3-squirrel/util/log"
-	"strings"
 )
 
 // QueryNEP5Balance queries address contract balance from fullnode.
@@ -26,7 +25,7 @@ func QueryNEP5Balance(minBlockIndex uint, address, contract string) (*big.Float,
 
 	result := rpc.InvokeFunction(minBlockIndex, contract, method, params)
 	if result == nil ||
-		strings.Contains(result.State, "FAULT") ||
+		VMStateFault(result.State) ||
 		len(result.Stack) == 0 {
 		return nil, false
 	}

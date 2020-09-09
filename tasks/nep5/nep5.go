@@ -1,6 +1,7 @@
 package nep5
 
 import (
+	"encoding/base64"
 	"fmt"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
@@ -118,12 +119,15 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 				switch strings.ToLower(noti.EventName) {
 				case "transfer":
 					log.Debugf("New NEP5 transfer event detected: %s", noti.TxID)
-					transfer := handleNEP5Transfer(noti)
+					transfer := parseNEP5Transfer(noti)
 					if transfer != nil {
 						txTransfers.transfers = append(txTransfers.transfers, transfer)
 					}
 				default:
-					log.Info("Notification in tx %s not parsed. EventName=%s", txID, noti.EventName)
+					// Detect if has address parameter, if true, check if has balance.
+					if !persistExtraAddrBalancesIfExists(noti) {
+						log.Info("Notification in tx %s not parsed. EventName=%s", txID, noti.EventName)
+					}
 				}
 			}
 
@@ -185,14 +189,16 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 			}
 		}
 
-		// Query balances.
-		db.InsertNEP5Transfers(txTransfers.transfers, addrAssets)
+		if len(txTransfers.transfers) > 0 ||
+			len(addrAssets) > 0 {
+			db.InsertNEP5Transfers(txTransfers.transfers, addrAssets)
+		}
 	}
 }
 
-func handleNEP5Transfer(noti *models.Notification) *models.Transfer {
-	if strings.Contains(noti.VMState, "FAULT") {
-		log.Debugf("VM execution status FAULT")
+func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
+	if util.VMStateFault(noti.VMState) {
+		log.Debugf("VM execution status FAULT: %s", noti.TxID)
 		return nil
 	}
 
@@ -259,4 +265,59 @@ func queryNEP5AssetInfo(noti *models.Notification, contract string) *models.Asse
 	// log.Debugf("Name=%s, Symbol=%s, Decimals=%v, TotalSupply=%v", name, symbol, decimals, totalSupply)
 	db.InsertNewAsset(asset)
 	return asset
+}
+
+func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {
+	if util.VMStateFault(noti.VMState) {
+		log.Debugf("VM execution status FAULT: %s", noti.TxID)
+		return false
+	}
+
+	if noti.State == nil ||
+		len(noti.State.Value) == 0 {
+		return false
+	}
+
+	addrAssets := []*models.AddrAsset{}
+
+	for _, stackItem := range noti.State.Value {
+		if stackItem.Type != "ByteString" {
+			continue
+		}
+
+		value := stackItem.Value.(string)
+		bytes, err := base64.StdEncoding.DecodeString(value)
+		if err != nil {
+			panic(err)
+		}
+
+		if len(bytes) != 20 {
+			continue
+		}
+
+		addr, ok := util.ExtractAddressFromByteString(value)
+		if !ok {
+			continue
+		}
+
+		contract := noti.Contract
+
+		contractBalance, ok := util.QueryNEP5Balance(noti.BlockIndex, addr, contract)
+		if !ok {
+			continue
+		}
+
+		addrAssets = append(addrAssets, &models.AddrAsset{
+			Address:   addr,
+			Contract:  contract,
+			Balance:   contractBalance,
+			Transfers: 0,
+		})
+	}
+
+	if len(addrAssets) > 0 {
+		db.PersistNEP5Balances(addrAssets)
+	}
+
+	return len(addrAssets) > 0
 }

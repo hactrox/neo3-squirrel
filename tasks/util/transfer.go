@@ -16,9 +16,5 @@ func ExtractNEP5Transfer(stackItems []models.StackItem) (from string, to string,
 		return
 	}
 	amount, ok = extractValue(stackItems[2])
-	if !ok {
-		return
-	}
-
 	return
 }

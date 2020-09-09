@@ -6,7 +6,6 @@ import (
 	"math"
 	"math/big"
 	"neo3-squirrel/models"
-	"neo3-squirrel/util/base58"
 	"neo3-squirrel/util/log"
 	"strconv"
 )
@@ -35,13 +34,7 @@ func extractAddress(stackItem models.StackItem) (string, bool) {
 	case "Any":
 		return "", true
 	case "ByteString":
-		bytes, err := base64.StdEncoding.DecodeString(value.(string))
-		if err != nil {
-			panic(err)
-		}
-
-		bytes = append([]byte{0x35}, bytes...)
-		return base58.CheckEncode(bytes), true
+		return ExtractAddressFromByteString(value.(string))
 	default:
 		err := fmt.Errorf("failed to parse address in type %s and value=%v", typ, value)
 		log.Error(err)

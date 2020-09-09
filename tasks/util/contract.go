@@ -81,10 +81,15 @@ func queryContractTotalSupply(minBlockIndex uint, contract string) (*big.Float, 
 func queryContractProperty(minBlockIndex uint, contract, property string) (*rpc.StackItem, bool) {
 	result := rpc.InvokeFunction(minBlockIndex, contract, property, nil)
 	if result == nil ||
-		strings.Contains(result.State, "FAULT") ||
+		VMStateFault(result.State) ||
 		len(result.Stack) == 0 {
 		return nil, false
 	}
 
 	return &result.Stack[0], true
+}
+
+// VMStateFault tells if vm state fault.
+func VMStateFault(vmstate string) bool {
+	return strings.Contains(vmstate, "FAULT")
 }
