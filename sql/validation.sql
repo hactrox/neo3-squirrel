@@ -1,6 +1,3 @@
-SET @blockCount := (SELECT COUNT(`index`) FROM `block`);
-SET @blockIndex := (SELECT `block_index` FROM `counter`);
-
 SELECT 'Neo3 Squirrel SQL Validation', 'Result'
 UNION ALL
 SELECT 'check block count', IF((SELECT COUNT(`index`) FROM `block`) - (SELECT `block_index` FROM `counter`) = 1, 'PASS', 'FAIL')
