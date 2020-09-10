@@ -38,14 +38,19 @@ func QueryAssetBasicInfo(minBlockIndex uint, asset *models.Asset) bool {
 	}
 	asset.Decimals = uint(dec)
 
-	asset.TotalSupply, ok = queryContractTotalSupply(minBlockIndex, contract)
+	asset.TotalSupply, ok = QueryAssetTotalSupply(minBlockIndex, contract, asset.Decimals)
+	return ok
+}
+
+// QueryAssetTotalSupply queries total supply of the given contract and returns as decimals-formatted value.
+func QueryAssetTotalSupply(minBlockIndex uint, contract string, decimals uint) (*big.Float, bool) {
+	totalSupply, ok := queryContractTotalSupply(minBlockIndex, contract)
 	if !ok {
-		return false
+		return nil, false
 	}
 
-	asset.TotalSupply = convert.AmountReadable(asset.TotalSupply, asset.Decimals)
-
-	return true
+	totalSupply = convert.AmountReadable(totalSupply, decimals)
+	return totalSupply, true
 }
 
 func queryContractName(minBlockIndex uint, contract string) (string, bool) {

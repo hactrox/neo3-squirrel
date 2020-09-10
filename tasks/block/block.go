@@ -3,11 +3,11 @@ package block
 import (
 	"fmt"
 	"math/big"
+	"neo3-squirrel/cache/block"
 	"neo3-squirrel/config"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
-	"neo3-squirrel/tasks/util"
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
@@ -182,16 +182,8 @@ func store(rawBlocks []*rpc.Block) {
 		tx.NetFee = convert.AmountReadable(tx.NetFee, 8)
 	}
 
-	util.CacheBlocks(blocks)
+	block.CacheBlocks(blocks)
 	db.InsertBlock(blocks, txBulk)
-
-	// Auxiliary signal for tx task.
-	// TxMaxPkShouldRefresh = true
-	// AssetTxMaxPkShouldRefresh = true
-	// Nep5MaxPkShouldRefresh = true
-	// nftMaxPkShouldRefresh = true
-	// gasMaxPkShouldRefresh = true
-	// scMaxPkShouldRefresh = true
 
 	bestHeight := rpc.GetBestHeight()
 

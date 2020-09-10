@@ -3,6 +3,9 @@ package nep5
 import (
 	"encoding/base64"
 	"fmt"
+	"math/big"
+	"neo3-squirrel/cache/block"
+	"neo3-squirrel/cache/gas"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
@@ -175,9 +178,9 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 
 				if minBlockIndex > 0 &&
 					int(minBlockIndex) == rpc.GetBestHeight() &&
-					contract == util.GAS {
+					contract == models.GAS {
 					// Check if `from` address is the transaction sender address.
-					tx, ok := util.GetCachedTransaction(transfer.TxID)
+					tx, ok := block.GetTransaction(transfer.TxID)
 					if !ok {
 						tx = db.GetTransaction(transfer.TxID)
 					}
@@ -208,12 +211,40 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 			}
 		}
 
+		// if new GAS total supply is not nil, then the value should be updated.
+		newGASTotalSupply := updateGASTotalSupply(txTransfers.transfers)
+
 		if len(txTransfers.transfers) > 0 ||
 			len(addrAssets) > 0 {
-			db.InsertNEP5Transfers(txTransfers.transfers, addrAssets)
+			db.InsertNEP5Transfers(txTransfers.transfers, addrAssets, newGASTotalSupply)
 			showTransfers(txTransfers.transfers)
 		}
 	}
+}
+
+func updateGASTotalSupply(transfers []*models.Transfer) *big.Float {
+	// Check if has GAS claim transfer.
+	hasGASClaimTransfer := false
+
+	for _, transfer := range transfers {
+		if transfer.IsGASClaimTransfer() {
+			hasGASClaimTransfer = true
+			break
+		}
+	}
+
+	bestBlock := rpc.GetBestHeight()
+	if !hasGASClaimTransfer || int(gas.CachedTillBlockIndex()) >= bestBlock || bestBlock < 0 {
+		return nil
+	}
+
+	gasTotalSupply, ok := util.QueryAssetTotalSupply(uint(bestBlock), models.GAS, 8)
+	if !ok {
+		return nil
+	}
+
+	gas.CacheGASTotalSupply(uint(bestBlock), gasTotalSupply)
+	return gasTotalSupply
 }
 
 func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
@@ -277,10 +308,16 @@ func queryNEP5AssetInfo(noti *models.Notification, contract string) *models.Asse
 		Type:       "nep5",
 	}
 
+	bestBlockIndex := rpc.GetBestHeight()
 	util.QueryAssetBasicInfo(minBlockIndex, asset)
 
 	// log.Debugf("Name=%s, Symbol=%s, Decimals=%v, TotalSupply=%v", name, symbol, decimals, totalSupply)
 	db.InsertNewAsset(asset)
+
+	if asset.Contract == models.GAS && bestBlockIndex > 0 {
+		gas.CacheGASTotalSupply(uint(bestBlockIndex), asset.TotalSupply)
+	}
+
 	return asset
 }
 
@@ -355,7 +392,7 @@ func showTransfers(transfers []*models.Transfer) {
 
 		if len(from) == 0 {
 			// Claim GAS.
-			if contract == util.GAS {
+			if contract == models.GAS {
 				msg = fmt.Sprintf("GAS claimed: %s %s -> %s", amountStr, asset.Symbol, to)
 			} else {
 				msg = fmt.Sprintf("Mint token: %s %s -> %s", amountStr, asset.Symbol, to)

@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"math/big"
 	"neo3-squirrel/models"
 	"neo3-squirrel/pkg/mysql"
 	"neo3-squirrel/util/convert"
@@ -31,7 +32,7 @@ var addrAssetColumns = []string{
 }
 
 // InsertNEP5Transfers inserts NEP5 transfers of a transactions into DB.
-func InsertNEP5Transfers(transfers []*models.Transfer, addrAssets []*models.AddrAsset) {
+func InsertNEP5Transfers(transfers []*models.Transfer, addrAssets []*models.AddrAsset, newGASTotalSupply *big.Float) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
 		// Insert NEP5 transfers.
 		if err := insertNEP5Transfer(sqlTx, transfers); err != nil {
@@ -43,6 +44,21 @@ func InsertNEP5Transfers(transfers []*models.Transfer, addrAssets []*models.Addr
 			return err
 		}
 
+		// Update GAS total supply if it changed.
+		if newGASTotalSupply != nil {
+			if err := updateContractTotalSupply(sqlTx, models.GAS, newGASTotalSupply); err != nil {
+				return err
+			}
+		}
+
+		return nil
+	})
+}
+
+// PersistNEP5Balances inserts and updates address contract balances.
+func PersistNEP5Balances(addrAssets []*models.AddrAsset) {
+	mysql.Trans(func(sqlTx *sql.Tx) error {
+		updateNEP5Balances(sqlTx, addrAssets)
 		return nil
 	})
 }
@@ -177,10 +193,21 @@ func getNEP5AddrAssetRecord(sqlTx *sql.Tx, address, contract string) (*models.Ad
 	return &addrAsset, nil
 }
 
-// PersistNEP5Balances inserts and updates address contract balances.
-func PersistNEP5Balances(addrAssets []*models.AddrAsset) {
-	mysql.Trans(func(sqlTx *sql.Tx) error {
-		updateNEP5Balances(sqlTx, addrAssets)
-		return nil
-	})
+func updateContractTotalSupply(sqlTx *sql.Tx, contract string, newGASTotalSupply *big.Float) error {
+	query := []string{
+		"UPDATE `asset`",
+		fmt.Sprintf("SET `total_supply` = %.8f", newGASTotalSupply),
+		fmt.Sprintf("WHERE `contract` = '%s'", contract),
+		"LIMIT 1",
+	}
+
+	result, err := sqlTx.Exec(mysql.Compose(query))
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	mysql.CheckIfRowsNotAffected(result, query)
+
+	return nil
 }

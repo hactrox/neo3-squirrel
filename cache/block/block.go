@@ -1,27 +1,44 @@
-package util
+package block
 
 import (
 	"container/list"
 	"neo3-squirrel/models"
+	"sync"
 )
 
-const cachedBlockCount = 100
+const maxCachedBlocks = 100
 
 var (
 	blockIndexQueue  = list.New()
 	lastBlocks       = map[uint]*models.Block{}
 	lastTransactions = map[string]*models.Transaction{}
+
+	mutex    sync.Mutex
+	bulkMode bool
 )
 
+// CacheBlocks caches blocks and transactions in these blocks.
 func CacheBlocks(blocks []*models.Block) {
+	mutex.Lock()
+	bulkMode = true
+	defer mutex.Unlock()
+
 	for _, block := range blocks {
-		CacheBlcok(block)
+		CacheBlock(block)
 	}
+
+	bulkMode = false
 }
 
-func CacheBlcok(block *models.Block) {
+// CacheBlock caches a single block and its transactoins.
+func CacheBlock(block *models.Block) {
 	if block == nil {
 		return
+	}
+
+	if !bulkMode {
+		mutex.Lock()
+		defer mutex.Unlock()
 	}
 
 	if _, exists := lastBlocks[block.Index]; exists {
@@ -34,7 +51,7 @@ func CacheBlcok(block *models.Block) {
 		lastTransactions[tx.Hash] = tx
 	}
 
-	if blockIndexQueue.Len() > cachedBlockCount {
+	if blockIndexQueue.Len() > maxCachedBlocks {
 		firstElem := blockIndexQueue.Front()
 		blockIndexToRemove := firstElem.Value.(uint)
 
@@ -53,12 +70,14 @@ func CacheBlcok(block *models.Block) {
 	}
 }
 
-func GetCachedBlock(blockIndex uint) (*models.Block, bool) {
+// GetBlock returns the block of the given index if cached.
+func GetBlock(blockIndex uint) (*models.Block, bool) {
 	block, ok := lastBlocks[blockIndex]
 	return block, ok
 }
 
-func GetCachedTransaction(txID string) (*models.Transaction, bool) {
+// GetTransaction returns the transaction if the given hash if cached.
+func GetTransaction(txID string) (*models.Transaction, bool) {
 	tx, ok := lastTransactions[txID]
 	return tx, ok
 }

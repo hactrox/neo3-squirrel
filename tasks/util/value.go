@@ -9,12 +9,6 @@ import (
 	"strconv"
 )
 
-// NEO & GAS contract hash
-const (
-	NEO = "0xde5f57d430d3dece511cf975a8d37848cb9e0525"
-	GAS = "0x668e0c1f9d7b70a99dd9e06eadd4c784d641afbc"
-)
-
 func extractAddress(stackItem models.StackItem) (string, bool) {
 	typ := stackItem.Type
 	value := stackItem.Value
