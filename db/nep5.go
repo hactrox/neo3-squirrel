@@ -201,13 +201,11 @@ func updateContractTotalSupply(sqlTx *sql.Tx, contract string, newGASTotalSupply
 		"LIMIT 1",
 	}
 
-	result, err := sqlTx.Exec(mysql.Compose(query))
+	_, err := sqlTx.Exec(mysql.Compose(query))
 	if err != nil {
 		log.Error(err)
 		return err
 	}
-
-	mysql.CheckIfRowsNotAffected(result, query)
 
 	return nil
 }

@@ -298,6 +298,10 @@ func insertAppLogBasic(sqlTx *sql.Tx, appLog *models.ApplicationLog) error {
 }
 
 func insertAppLogNotifications(sqlTx *sql.Tx, notifications []models.Notification) error {
+	if len(notifications) == 0 {
+		return nil
+	}
+
 	var strBuilder strings.Builder
 	strBuilder.WriteString(fmt.Sprintf("INSERT INTO `applicationlog_notification`"))
 	strBuilder.WriteString(fmt.Sprintf("(%s)", strings.Join(appLogNotiColumns[1:], ", ")))
