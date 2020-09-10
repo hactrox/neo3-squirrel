@@ -111,7 +111,6 @@ func contractExists(sqlTx *sql.Tx, contract string) (bool, error) {
 }
 
 func insertNewAsset(sqlTx *sql.Tx, asset *models.Asset) error {
-
 	query := []string{
 		"INSERT INTO `asset`",
 		fmt.Sprintf("(%s)", strings.Join(assetColumns[1:], ", ")),

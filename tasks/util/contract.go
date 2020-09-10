@@ -20,15 +20,18 @@ func QueryAssetBasicInfo(minBlockIndex uint, asset *models.Asset) bool {
 
 	asset.Name, ok = queryContractName(minBlockIndex, contract)
 	if !ok {
+		log.Warnf("Failed to get 'name' from contract %s", contract)
 		return false
 	}
 	asset.Symbol, ok = queryContractSymbol(minBlockIndex, contract)
 	if !ok {
+		log.Warnf("Failed to get 'symbol' from contract %s", contract)
 		return false
 	}
 
 	decimals, ok := queryContractDecimals(minBlockIndex, contract)
 	if !ok {
+		log.Warnf("Failed to get 'decimals' from contract %s", contract)
 		return false
 	}
 
@@ -39,6 +42,10 @@ func QueryAssetBasicInfo(minBlockIndex uint, asset *models.Asset) bool {
 	asset.Decimals = uint(dec)
 
 	asset.TotalSupply, ok = QueryAssetTotalSupply(minBlockIndex, contract, asset.Decimals)
+	if !ok {
+		log.Warnf("Failed to get 'totalSupply' from contract %s", contract)
+	}
+
 	return ok
 }
 

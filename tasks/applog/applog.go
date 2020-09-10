@@ -8,6 +8,7 @@ import (
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
+	"neo3-squirrel/util/timeutil"
 	"sync"
 	"time"
 )
@@ -36,7 +37,7 @@ func StartApplicationLogSyncTask() {
 		nextTxPK = lastAppLogTx.ID + 1
 		upToBlockHeight = lastAppLogTx.BlockIndex
 		if upToBlockHeight > 0 {
-			upToBlockTime = time.Unix(int64(lastAppLogTx.BlockTime)/1000, 0).Format("(2006-01-02 15:04:05)")
+			upToBlockTime = fmt.Sprintf("(%s)", timeutil.FormatBlockTime(lastAppLogTx.BlockTime))
 		}
 	}
 

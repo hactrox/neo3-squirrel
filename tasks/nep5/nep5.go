@@ -13,6 +13,7 @@ import (
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
+	"neo3-squirrel/util/timeutil"
 	"strings"
 	"time"
 )
@@ -51,7 +52,7 @@ func StartNEP5TransferSyncTask() {
 
 		upToBlockHeight = tx.BlockIndex
 		if upToBlockHeight > 0 {
-			upToBlockTime = time.Unix(int64(tx.BlockTime/1000), 0).Format("(2006-01-02 15:04:05)")
+			upToBlockTime = timeutil.FormatBlockTime(tx.BlockTime)
 		}
 
 		remainingNotis = db.GetNotificationCount(lastTransferNoti.ID + 1)
@@ -267,12 +268,11 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 		asset = nep5Asset
 	} else {
 		asset = queryNEP5AssetInfo(noti, contract)
-		nep5Assets[asset.Contract] = asset
-	}
+		if asset == nil {
+			return nil
+		}
 
-	if asset == nil {
-		log.Debugf("Cannot find asset info for contract: %s", contract)
-		return nil
+		nep5Assets[asset.Contract] = asset
 	}
 
 	// Parse Transfer Info.
@@ -301,7 +301,7 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 
 func queryNEP5AssetInfo(noti *models.Notification, contract string) *models.Asset {
 	minBlockIndex := noti.BlockIndex
-	asset := &models.Asset{
+	asset := models.Asset{
 		BlockIndex: minBlockIndex,
 		BlockTime:  noti.BlockTime,
 		Contract:   contract,
@@ -309,16 +309,21 @@ func queryNEP5AssetInfo(noti *models.Notification, contract string) *models.Asse
 	}
 
 	bestBlockIndex := rpc.GetBestHeight()
-	util.QueryAssetBasicInfo(minBlockIndex, asset)
+	ok := util.QueryAssetBasicInfo(minBlockIndex, &asset)
+	if !ok {
+		log.Warnf("Failed to get NEP5 contract info. TxID=%s, Contract=%s, BlockIndex=%d, BlockTime=%s",
+			noti.TxID, contract, noti.BlockIndex, timeutil.FormatBlockTime(noti.BlockTime))
+		return nil
+	}
 
 	// log.Debugf("Name=%s, Symbol=%s, Decimals=%v, TotalSupply=%v", name, symbol, decimals, totalSupply)
-	db.InsertNewAsset(asset)
+	db.InsertNewAsset(&asset)
 
-	if asset.Contract == models.GAS && bestBlockIndex > 0 {
+	if contract == models.GAS && bestBlockIndex > 0 {
 		gas.CacheGASTotalSupply(uint(bestBlockIndex), asset.TotalSupply)
 	}
 
-	return asset
+	return &asset
 }
 
 func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {

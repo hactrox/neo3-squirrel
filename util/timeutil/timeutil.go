@@ -2,7 +2,16 @@ package timeutil
 
 import (
 	"fmt"
+	"time"
 )
+
+// FormatBlockTime parses block time into format '2006-01-02 15:04:05'.
+func FormatBlockTime(blockTime uint64) string {
+	ts := int64(blockTime) / 1000
+	t := time.Unix(ts, 0)
+
+	return t.Format("2006-01-02 15:04:05")
+}
 
 // ParseSeconds returns human readable time format of the given seconds.
 func ParseSeconds(totalSeconds uint64) string {
