@@ -42,7 +42,7 @@ func ToDecimal(valueStr string) *big.Float {
 // E.g., 100000000 unit of GAS with 8 decimals will return 1.
 func AmountReadable(amount *big.Float, decimals uint) *big.Float {
 	decimalsFactor := big.NewFloat(math.Pow10(int(decimals)))
-	readableAmount := new(big.Float).Quo(amount, decimalsFactor)
+	readableAmount := new(big.Float).SetPrec(decimalPrecision).Quo(amount, decimalsFactor)
 
 	return readableAmount
 }
