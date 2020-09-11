@@ -252,11 +252,11 @@ func GetAppLogNotifications(startPK, limit uint) []*models.Notification {
 
 // GetNotificationCount returns the number of notifications
 // starts from the given primary key(>=startPK);
-func GetNotificationCount(startPK uint) uint {
+func GetNotificationCount(startPK uint, txID string) uint {
 	query := []string{
 		"SELECT COUNT(`id`)",
 		"FROM `applicationlog_notification`",
-		fmt.Sprintf("WHERE `id` >= %d", startPK),
+		fmt.Sprintf("WHERE `id` >= %d AND `txid` != '%s'", startPK, txID),
 	}
 
 	var count uint

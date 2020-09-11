@@ -32,7 +32,11 @@ var addrAssetColumns = []string{
 }
 
 // InsertNEP5Transfers inserts NEP5 transfers of a transactions into DB.
-func InsertNEP5Transfers(transfers []*models.Transfer, addrAssets []*models.AddrAsset, newGASTotalSupply *big.Float) {
+func InsertNEP5Transfers(transfers []*models.Transfer,
+	addrAssets []*models.AddrAsset,
+	addrTransferCntDelta map[string]*models.AddressInfo,
+	newGASTotalSupply *big.Float,
+	committeeGASBalances map[string]*big.Float) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
 		// Insert NEP5 transfers.
 		if err := insertNEP5Transfer(sqlTx, transfers); err != nil {
@@ -44,9 +48,23 @@ func InsertNEP5Transfers(transfers []*models.Transfer, addrAssets []*models.Addr
 			return err
 		}
 
+		// Update address info.
+		if len(addrTransferCntDelta) > 0 {
+			if err := updateAddressInfo(sqlTx, addrTransferCntDelta); err != nil {
+				return err
+			}
+		}
+
 		// Update GAS total supply if it changed.
 		if newGASTotalSupply != nil {
 			if err := updateContractTotalSupply(sqlTx, models.GAS, newGASTotalSupply); err != nil {
+				return err
+			}
+		}
+
+		// Update committee balances.
+		if len(committeeGASBalances) > 0 {
+			if err := updateCommitteeGASBalances(sqlTx, committeeGASBalances); err != nil {
 				return err
 			}
 		}
@@ -144,7 +162,7 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 			"LIMIT 1;",
 		}
 
-		updatesStrBuilder.WriteString(mysql.Compose(updateSQL))
+		updatesStrBuilder.WriteString(strings.Join(updateSQL, " "))
 	}
 
 	sql := ""
@@ -157,7 +175,7 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 	_, err := sqlTx.Exec(sql)
 	if err != nil {
 		log.Error(sql)
-		log.Error(err)
+		log.Panic(err)
 	}
 
 	return err
@@ -193,15 +211,94 @@ func getNEP5AddrAssetRecord(sqlTx *sql.Tx, address, contract string) (*models.Ad
 	return &addrAsset, nil
 }
 
-func updateContractTotalSupply(sqlTx *sql.Tx, contract string, newGASTotalSupply *big.Float) error {
+func updateAddressInfo(sqlTx *sql.Tx, delta map[string]*models.AddressInfo) error {
+	if len(delta) == 0 {
+		return nil
+	}
+
+	// Sort addresses to avoid potential sql dead lock.
+	addresses := []string{}
+	for addr := range delta {
+		addresses = append(addresses, addr)
+	}
+
+	sort.Strings(addresses)
+
+	var insertionStrBuilder strings.Builder
+	var updatesStrBuilder strings.Builder
+
+	for _, addr := range addresses {
+		firstTxTime := delta[addr].FirstTxTime
+		lastTxTime := delta[addr].LastTxTime
+		transfersDelta := delta[addr].Transfers
+
+		// The new address info should be inserted.
+		if firstTxTime == lastTxTime {
+			insertionStrBuilder.WriteString(fmt.Sprintf(", ('%s', %d, %d, %d)",
+				addr, firstTxTime, lastTxTime, transfersDelta))
+			continue
+		}
+
+		// The address record should be updated.
+		updateSQL := []string{
+			"UPDATE `address`",
+			fmt.Sprintf("SET `last_tx_time` = %d", lastTxTime),
+			fmt.Sprintf(", `transfers` = `transfers` + %d", transfersDelta),
+			fmt.Sprintf("WHERE `address` = '%s'", addr),
+			"LIMIT 1;",
+		}
+
+		updatesStrBuilder.WriteString(strings.Join(updateSQL, " "))
+	}
+
+	sql := ""
+	if insertionStrBuilder.Len() > 0 {
+		sql += fmt.Sprintf("INSERT INTO `address`(%s) VALUES ", strings.Join(addressInfoColumn[1:], ", "))
+		sql += insertionStrBuilder.String()[2:] + ";"
+	}
+	sql += updatesStrBuilder.String()
+
+	_, err := sqlTx.Exec(sql)
+	if err != nil {
+		log.Error(sql)
+		log.Panic(err)
+	}
+
+	return err
+}
+
+func updateContractTotalSupply(sqlTx *sql.Tx, contract string, totalSupply *big.Float) error {
 	query := []string{
 		"UPDATE `asset`",
-		fmt.Sprintf("SET `total_supply` = %.8f", newGASTotalSupply),
+		fmt.Sprintf("SET `total_supply` = %.8f", totalSupply),
 		fmt.Sprintf("WHERE `contract` = '%s'", contract),
 		"LIMIT 1",
 	}
 
 	_, err := sqlTx.Exec(mysql.Compose(query))
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	return nil
+}
+
+func updateCommitteeGASBalances(sqlTx *sql.Tx, committeeBalances map[string]*big.Float) error {
+	var sqlBuilder strings.Builder
+
+	for addr, gasBalance := range committeeBalances {
+		query := []string{
+			"UPDATE `addr_asset`",
+			fmt.Sprintf("SET `balance` = %.8f", gasBalance),
+			fmt.Sprintf("WHERE `contract` = '%s' AND `address` = '%s'", models.GAS, addr),
+			"LIMIT 1",
+		}
+
+		sqlBuilder.WriteString(mysql.Compose(query))
+	}
+
+	_, err := sqlTx.Exec(sqlBuilder.String())
 	if err != nil {
 		log.Error(err)
 		return err

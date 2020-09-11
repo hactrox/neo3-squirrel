@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"neo3-squirrel/util/base58"
 	"neo3-squirrel/util/byteutil"
+	"neo3-squirrel/util/hashutil"
 )
 
 // GetAddrScriptHash returns script hash of an address.
@@ -29,4 +30,23 @@ func ExtractAddressFromByteString(byteString string) (string, bool) {
 	bytes = append([]byte{0x35}, bytes...)
 	return base58.CheckEncode(bytes), true
 
+}
+
+// GetAddressFromPublicKeyBase64 calcluates address from base64 encoded public key.
+func GetAddressFromPublicKeyBase64(base64Str string) (string, bool) {
+	bytes, err := base64.StdEncoding.DecodeString(base64Str)
+	if err != nil {
+		return "", false
+	}
+
+	return GetAddressFromPublicKeyBytes(bytes), true
+}
+
+// GetAddressFromPublicKeyBytes calculates address from public key hex string.
+func GetAddressFromPublicKeyBytes(bytes []byte) string {
+	bytes = append([]byte{0x0C, 0x21}, bytes...)
+	bytes = append(bytes, 0x0b, 0x41, 0x95, 0x44, 0x0d, 0x78)
+	bytes = append([]byte{0x35}, hashutil.Hash160(bytes)...)
+
+	return base58.CheckEncode(bytes)
 }

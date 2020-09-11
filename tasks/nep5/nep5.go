@@ -53,10 +53,10 @@ func StartNEP5TransferSyncTask() {
 			upToBlockTime = timeutil.FormatBlockTime(tx.BlockTime)
 		}
 
-		remainingNotis = db.GetNotificationCount(lastTransferNoti.ID + 1)
+		remainingNotis = db.GetNotificationCount(lastTransferNoti.ID+1, lastTransferNoti.TxID)
 		lastNotiTxID = lastTransferNoti.TxID
 	} else {
-		remainingNotis = db.GetNotificationCount(0)
+		remainingNotis = db.GetNotificationCount(0, "")
 	}
 
 	msgs := []string{
@@ -134,7 +134,9 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 				}
 			}
 
-			transferChan <- &txTransfers
+			if len(txTransfers.transfers) > 0 {
+				transferChan <- &txTransfers
+			}
 		}
 
 		lastTxID := notis[len(notis)-1].TxID
@@ -194,7 +196,7 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 		Amount:     readableAmount,
 	}
 
-	log.Debug("New NEP5 transfer parsed")
+	// log.Debug("New NEP5 transfer parsed")
 	return &transfer
 }
 
@@ -260,7 +262,12 @@ func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {
 
 		contract := noti.Contract
 
-		contractBalance, ok := util.QueryNEP5Balance(noti.BlockIndex, addr, contract)
+		asset, ok := nep5Assets[contract]
+		if !ok {
+			continue
+		}
+
+		balance, ok := util.QueryNEP5Balance(noti.BlockIndex, addr, contract, asset.Decimals)
 		if !ok {
 			continue
 		}
@@ -268,7 +275,7 @@ func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {
 		addrAssets = append(addrAssets, &models.AddrAsset{
 			Address:   addr,
 			Contract:  contract,
-			Balance:   contractBalance,
+			Balance:   balance,
 			Transfers: 0,
 		})
 	}

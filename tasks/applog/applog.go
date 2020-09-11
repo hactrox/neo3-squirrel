@@ -77,7 +77,7 @@ func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *models.Transactio
 		// and waiting for the applog query result.
 		for _, tx := range txs {
 			preAppLogChan <- tx
-			log.Debugf("send tx %s to preAppLogChan", tx.Hash)
+			// log.Debugf("send tx %s to preAppLogChan", tx.Hash)
 		}
 
 		nextTxPK = txs[len(txs)-1].ID + 1
@@ -98,7 +98,7 @@ func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *models.Transactio
 					appLogQueryResult: result.(*rpc.ApplicationLogResult),
 				}
 				appLogChan <- &appLog
-				log.Debugf("send appLog of tx %s into appLogChan", tx.Hash)
+				// log.Debugf("send appLog of tx %s into appLogChan", tx.Hash)
 				break
 			}
 		}
@@ -114,7 +114,7 @@ func queryAppLog(workers int, preAppLogChan <-chan *models.Transaction) {
 				// log.Debugf("prepare to query applicationlog of tx %s", tx.Hash)
 				appLogQueryResult := rpc.GetApplicationLog(tx.BlockIndex, tx.Hash)
 				appLogs.Store(tx.Hash, appLogQueryResult)
-				log.Debugf("store applog result into appLogs, txID=%s, len(noti)=%d", tx.Hash, len(appLogQueryResult.Notifications))
+				// log.Debugf("store applog result into appLogs, txID=%s, len(noti)=%d", tx.Hash, len(appLogQueryResult.Notifications))
 			}
 		}(preAppLogChan)
 	}
@@ -126,7 +126,7 @@ func handleApplicationLogs(appLogChan <-chan *appLogResult) {
 	for result := range appLogChan {
 		tx := result.tx
 		logResult := result.appLogQueryResult
-		log.Debugf("handle application log of txID: %s", tx.Hash)
+		// log.Debugf("handle application log of txID: %s", tx.Hash)
 
 		// Store applicationlog result
 		appLog := models.ParseApplicationLog(tx, logResult)

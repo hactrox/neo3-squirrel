@@ -2,9 +2,7 @@ package nep5
 
 import (
 	"fmt"
-	"math/big"
 	"neo3-squirrel/cache/block"
-	"neo3-squirrel/cache/gas"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
@@ -24,44 +22,38 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 		addrAssets := []*models.AddrAsset{}
 		addrTransfers := make(map[string]*models.AddrAsset)
 
+		// There may be a time gap between
+		// GAS balance updates and transaction gas fee deduction,
+		// If transaction sender's GAS changed, task should wait
+		// for some time to make sure GAS balance changing was finalized.
+		slept := false
+
+		addrTransferCntDelta := countAddressTransfers(txTransfers.transfers)
+		committeeGASBalances := getCommitteeGASBalances(txTransfers.transfers)
+
 		for _, transfer := range txTransfers.transfers {
 			minBlockIndex := transfer.BlockIndex
 			contract := transfer.Contract
 			asset := nep5Assets[contract]
-			addrs := []string{}
+			addrs := map[string]bool{}
 			if len(transfer.From) > 0 {
-				addrs = append(addrs, transfer.From)
+				addrs[transfer.From] = true
 			}
 			if len(transfer.To) > 0 {
-				addrs = append(addrs, transfer.To)
+				addrs[transfer.To] = true
 			}
 
-			for _, addr := range addrs {
-				// Filter this query if alreadt queried.
+			// Get contract balance of these addresses.
+			for addr := range addrs {
+				// Filter this query if already queried.
 				if addrAsset, ok := addrTransfers[addr+contract]; ok {
 					addrAsset.Transfers++
 					continue
 				}
 
-				if minBlockIndex > 0 &&
-					int(minBlockIndex) == rpc.GetBestHeight() &&
-					contract == models.GAS {
-					// Check if `from` address is the transaction sender address.
-					tx, ok := block.GetTransaction(transfer.TxID)
-					if !ok {
-						tx = db.GetTransaction(transfer.TxID)
-					}
-					if tx == nil {
-						err := fmt.Errorf("failed to find transaction %s", transfer.TxID)
-						log.Panic(err)
-					}
+				sleepIfGasConsumed(&slept, minBlockIndex, transfer.TxID, contract, addr)
 
-					if addr == tx.Sender {
-						time.Sleep(1 * time.Second)
-					}
-				}
-
-				amount, ok := util.QueryNEP5Balance(minBlockIndex, addr, contract)
+				balance, ok := util.QueryNEP5Balance(minBlockIndex, addr, contract, asset.Decimals)
 				if !ok {
 					continue
 				}
@@ -69,8 +61,8 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 				addrAsset := models.AddrAsset{
 					Address:   addr,
 					Contract:  contract,
-					Balance:   convert.AmountReadable(amount, asset.Decimals),
-					Transfers: 1, // Number of contract transfers added.
+					Balance:   balance,
+					Transfers: 1, // Number of transfers added.
 				}
 
 				addrAssets = append(addrAssets, &addrAsset)
@@ -83,35 +75,36 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 
 		if len(txTransfers.transfers) > 0 ||
 			len(addrAssets) > 0 {
-			db.InsertNEP5Transfers(txTransfers.transfers, addrAssets, newGASTotalSupply)
+			db.InsertNEP5Transfers(txTransfers.transfers,
+				addrAssets,
+				addrTransferCntDelta,
+				newGASTotalSupply,
+				committeeGASBalances)
 			showTransfers(txTransfers.transfers)
 		}
 	}
 }
 
-func updateGASTotalSupply(transfers []*models.Transfer) *big.Float {
-	// Check if has GAS claim transfer.
-	hasGASClaimTransfer := false
-
-	for _, transfer := range transfers {
-		if transfer.IsGASClaimTransfer() {
-			hasGASClaimTransfer = true
-			break
-		}
+func sleepIfGasConsumed(slept *bool, minBlockIndex uint, txID, contract, addr string) {
+	if *slept || contract != models.GAS ||
+		int(minBlockIndex) != rpc.GetBestHeight() {
+		return
 	}
 
-	bestBlock := rpc.GetBestHeight()
-	if !hasGASClaimTransfer || int(gas.CachedTillBlockIndex()) >= bestBlock || bestBlock < 0 {
-		return nil
-	}
-
-	gasTotalSupply, ok := util.QueryAssetTotalSupply(uint(bestBlock), models.GAS, 8)
+	// Check if `from` address is the transaction sender address.
+	tx, ok := block.GetTransaction(txID)
 	if !ok {
-		return nil
+		tx = db.GetTransaction(txID)
+	}
+	if tx == nil {
+		err := fmt.Errorf("failed to find transaction %s", txID)
+		log.Panic(err)
 	}
 
-	gas.CacheGASTotalSupply(uint(bestBlock), gasTotalSupply)
-	return gasTotalSupply
+	if addr == tx.Sender {
+		time.Sleep(1 * time.Second)
+		*slept = true
+	}
 }
 
 func showTransfers(transfers []*models.Transfer) {
@@ -139,7 +132,7 @@ func showTransfers(transfers []*models.Transfer) {
 			if len(to) == 0 {
 				msg = fmt.Sprintf("Destroy token: %s destroyed %s %s", from, amount, asset.Symbol)
 			} else {
-				msg = fmt.Sprintf("NEP5 transfer: %34s -> %34s, Amount=%s %s",
+				msg = fmt.Sprintf("NEP5 transfer: %34s -> %34s, %s %s",
 					from, to, amountStr, asset.Symbol)
 			}
 		}

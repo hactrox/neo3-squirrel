@@ -1,6 +1,8 @@
 package tasks
 
 import (
+	"neo3-squirrel/cache/address"
+	"neo3-squirrel/db"
 	"neo3-squirrel/rpc"
 	"neo3-squirrel/tasks/applog"
 	"neo3-squirrel/tasks/block"
@@ -11,6 +13,8 @@ import (
 // Run manages all sync tasks.
 func Run() {
 	log.Info("Start Neo3 blockchain data parser.")
+
+	address.Init(db.GetAllAddressInfo())
 
 	rpc.TraceBestHeight()
 
