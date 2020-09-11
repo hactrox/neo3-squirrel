@@ -2,6 +2,8 @@ package rpc
 
 import (
 	"neo3-squirrel/tests"
+	"neo3-squirrel/util/log"
+	"os"
 	"testing"
 )
 
@@ -10,7 +12,11 @@ func TestGetApplicationLog(t *testing.T) {
 		t.SkipNow()
 	}
 
+	log.Init(true)
 	setRPCforTest(tests.GetTestRPC(t))
+	defer func() {
+		os.RemoveAll("./logs")
+	}()
 
 	// Get transactions of block index 0.
 	block := SyncBlock(0)

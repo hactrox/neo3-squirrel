@@ -1,14 +1,9 @@
 package tests
 
 import (
-	"neo3-squirrel/util/log"
 	"os"
 	"testing"
 )
-
-func init() {
-	log.Init(true)
-}
 
 // GetTestRPC gets test fullnode rpc address from environment variable.
 func GetTestRPC(t *testing.T) string {
