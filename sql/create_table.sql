@@ -141,3 +141,13 @@ CREATE TABLE IF NOT EXISTS `asset`
     `type`             VARCHAR(16)  NOT NULL,
     `total_supply`  DECIMAL(35, 8)  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
+
+
+CREATE TABLE IF NOT EXISTS `address`
+(
+    `id`                INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `address`               CHAR(34)  NOT NULL,
+    `first_tx_time`  BIGINT UNSIGNED  NOT NULL,
+    `last_tx_time`   BIGINT UNSIGNED  NOT NULL,
+    `transfers`         INT UNSIGNED  NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
