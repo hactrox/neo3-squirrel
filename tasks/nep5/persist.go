@@ -132,7 +132,7 @@ func showTransfers(transfers []*models.Transfer) {
 			if len(to) == 0 {
 				msg = fmt.Sprintf("Destroy token: %s destroyed %s %s", from, amount, asset.Symbol)
 			} else {
-				msg = fmt.Sprintf("NEP5 transfer: %34s -> %34s, %s %s",
+				msg = fmt.Sprintf("NEP5 transfer: %34s -> %34s, amount: %s %s",
 					from, to, amountStr, asset.Symbol)
 			}
 		}
