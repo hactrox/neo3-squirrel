@@ -159,10 +159,10 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 			fmt.Sprintf("SET `balance`=%.8f", balance),
 			fmt.Sprintf(", `transfers`=`transfers`+%d", newTransfers),
 			fmt.Sprintf("WHERE `contract`='%s' AND `address`='%s'", contract, address),
-			"LIMIT 1;",
+			"LIMIT 1",
 		}
 
-		updatesStrBuilder.WriteString(strings.Join(updateSQL, " "))
+		updatesStrBuilder.WriteString(strings.Join(updateSQL, " ") + ";")
 	}
 
 	sql := ""
@@ -245,10 +245,10 @@ func updateAddressInfo(sqlTx *sql.Tx, delta map[string]*models.AddressInfo) erro
 			fmt.Sprintf("SET `last_tx_time` = %d", lastTxTime),
 			fmt.Sprintf(", `transfers` = `transfers` + %d", transfersDelta),
 			fmt.Sprintf("WHERE `address` = '%s'", addr),
-			"LIMIT 1;",
+			"LIMIT 1",
 		}
 
-		updatesStrBuilder.WriteString(strings.Join(updateSQL, " "))
+		updatesStrBuilder.WriteString(strings.Join(updateSQL, " ") + ";")
 	}
 
 	sql := ""
@@ -295,7 +295,7 @@ func updateCommitteeGASBalances(sqlTx *sql.Tx, committeeBalances map[string]*big
 			"LIMIT 1",
 		}
 
-		sqlBuilder.WriteString(mysql.Compose(query))
+		sqlBuilder.WriteString(mysql.Compose(query) + ";")
 	}
 
 	_, err := sqlTx.Exec(sqlBuilder.String())
