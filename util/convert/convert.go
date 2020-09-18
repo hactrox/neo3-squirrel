@@ -8,7 +8,7 @@ import (
 	"strings"
 )
 
-const decimalPrecision = 128
+const decimalPrecision = 256
 
 // UInt64sToList converts uint64 array to string.
 func UInt64sToList(ids []uint64) string {
@@ -18,11 +18,6 @@ func UInt64sToList(ids []uint64) string {
 // UInt16sToList converts uint16 array to string.
 func UInt16sToList(ids []uint16) string {
 	return intsToList(fmt.Sprint(ids))
-}
-
-// Float64ToDecimal converts float64 to big.Float.
-func Float64ToDecimal(val float64) *big.Float {
-	return ToDecimal(fmt.Sprintf("%.8f", val))
 }
 
 // DecimalNeg returns val with its sign negated.
@@ -53,7 +48,7 @@ func BigFloatToString(value *big.Float) string {
 		return ""
 	}
 
-	valueStr := value.Text('f', 18)
+	valueStr := value.Text('f', 64)
 	valueStr = strings.TrimRight(valueStr, "0")
 	valueStr = strings.TrimSuffix(valueStr, ".")
 
