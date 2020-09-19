@@ -151,3 +151,36 @@ CREATE TABLE IF NOT EXISTS `address`
     `last_tx_time`   BIGINT UNSIGNED  NOT NULL,
     `transfers`         INT UNSIGNED  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
+
+
+CREATE TABLE IF NOT EXISTS `contract`
+(
+    `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `block_index`     INT UNSIGNED  NOT NULL,
+    `block_time`   BIGINT UNSIGNED  NOT NULL,
+    `txid`                CHAR(66)  NOT NULL,
+    `hash`                CHAR(42)  NOT NULL,
+    `state`               CHAR(16)  NOT NULL,
+    `new_hash`            CHAR(42)  NOT NULL,
+    `contract_id`              INT  NOT NULL,
+    `script`            MEDIUMTEXT  NOT NULL,
+    `manifest`                JSON  NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
+
+
+CREATE TABLE IF NOT EXISTS `contract_state`
+(
+    `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `block_index`     INT UNSIGNED  NOT NULL,
+    `block_time`   BIGINT UNSIGNED  NOT NULL,
+    `txid`                CHAR(66)  NOT NULL,
+    `state`               CHAR(16)  NOT NULL,
+    `contract_id`              INT  NOT NULL,
+    `hash`                CHAR(42)  NOT NULL,
+    `name`             VARCHAR(64)  NOT NULL,
+    `symbol`           VARCHAR(32)  NOT NULL,
+    `decimals`    TINYINT UNSIGNED  NOT NULL,
+    `total_supply`  DECIMAL(35, 8)  NOT NULL,
+    `script`            MEDIUMTEXT  NOT NULL,
+    `manifest`                JSON  NOT NULL
+) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';

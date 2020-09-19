@@ -11,4 +11,6 @@ TRUNCATE TABLE `transaction_signer`;
 TRUNCATE TABLE `transaction_witness`;
 TRUNCATE TABLE `transfer`;
 TRUNCATE TABLE `address`;
+TRUNCATE TABLE `contract`;
+TRUNCATE TABLE `contract_state`;
 INSERT INTO `counter`(`id`, `block_index`, `addr_count`) VALUES(1, -1, 0);
