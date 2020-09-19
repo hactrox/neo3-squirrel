@@ -3,9 +3,9 @@ package base58
 import (
 	"bytes"
 	"errors"
+	"neo3-squirrel/util/hashutil"
 
 	"github.com/mr-tron/base58"
-	"github.com/nspcc-dev/neo-go/pkg/crypto/hash"
 )
 
 // CheckDecode decides base58 with checksum check.
@@ -19,7 +19,7 @@ func CheckDecode(s string) (b []byte, err error) {
 		return nil, errors.New("invalid base-58 check string: missing checksum")
 	}
 
-	if !bytes.Equal(hash.Checksum(b[:len(b)-4]), b[len(b)-4:]) {
+	if !bytes.Equal(hashutil.Checksum(b[:len(b)-4]), b[len(b)-4:]) {
 		return nil, errors.New("invalid base-58 check string: invalid checksum")
 	}
 
@@ -32,6 +32,6 @@ func CheckDecode(s string) (b []byte, err error) {
 // CheckEncode encodes the given bytes into
 // base58 encoding with checksum appended to it.
 func CheckEncode(b []byte) string {
-	b = append(b, hash.Checksum(b)...)
+	b = append(b, hashutil.Checksum(b)...)
 	return base58.Encode(b)
 }

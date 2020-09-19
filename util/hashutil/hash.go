@@ -34,6 +34,13 @@ func Ripemd160(data []byte) []byte {
 	return ripemd160H.Sum(nil)
 }
 
+// Checksum returns the checksum for a given piece of data
+// using sha256 twice as the hash algorithm.
+func Checksum(data []byte) []byte {
+	hash := Hash256(data)
+	return hash[:4]
+}
+
 // GetScriptHash returns hash(160 bits) of input data bytes.
 func GetScriptHash(data []byte) []byte {
 	return Hash160(data)
