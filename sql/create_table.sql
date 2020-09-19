@@ -81,6 +81,8 @@ CREATE TABLE IF NOT EXISTS `transaction_witness`
 CREATE TABLE IF NOT EXISTS `applicationlog`
 (
     `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `block_index`    INT UNSIGNED  NOT NULL,
+    `block_time`  BIGINT UNSIGNED  NOT NULL,
     `txid`               CHAR(66)  NOT NULL,
     `trigger`         VARCHAR(16)  NOT NULL,
     `vmstate`          VARCHAR(8)  NOT NULL,
@@ -93,9 +95,9 @@ CREATE TABLE IF NOT EXISTS `applicationlog`
 CREATE TABLE IF NOT EXISTS `applicationlog_notification`
 (
     `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `txid`               CHAR(66)  NOT NULL,
     `block_index`    INT UNSIGNED  NOT NULL,
     `block_time`  BIGINT UNSIGNED  NOT NULL,
+    `txid`               CHAR(66)  NOT NULL,
     `vmstate`          VARCHAR(8)  NOT NULL,
     `contract`           CHAR(42)  NOT NULL,
     `eventname`       VARCHAR(64)  NOT NULL,

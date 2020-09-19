@@ -12,6 +12,8 @@ import (
 
 var appLogColumns = []string{
 	"`id`",
+	"`block_index`",
+	"`block_time`",
 	"`txid`",
 	"`trigger`",
 	"`vmstate`",
@@ -22,9 +24,9 @@ var appLogColumns = []string{
 
 var appLogNotiColumns = []string{
 	"`id`",
-	"`txid`",
 	"`block_index`",
 	"`block_time`",
+	"`txid`",
 	"`vmstate`",
 	"`contract`",
 	"`eventname`",
@@ -77,6 +79,8 @@ func getApplicatoinLogQuery(query string) *models.ApplicationLog {
 
 	err := mysql.QueryRow(query, nil,
 		&appLog.ID,
+		&appLog.BlockIndex,
+		&appLog.BlockTime,
 		&appLog.TxID,
 		&appLog.Trigger,
 		&appLog.VMState,
@@ -121,9 +125,9 @@ func GetLastNotiForNEP5Task() *models.Notification {
 
 	err := mysql.QueryRow(mysql.Compose(query), nil,
 		&noti.ID,
-		&noti.TxID,
 		&noti.BlockIndex,
 		&noti.BlockTime,
+		&noti.TxID,
 		&noti.VMState,
 		&noti.Contract,
 		&noti.EventName,
@@ -185,9 +189,9 @@ func GetGroupedAppLogNotifications(appLogPK, limit uint) []*models.Notification 
 
 		err := rows.Scan(
 			&noti.ID,
-			&noti.TxID,
 			&noti.BlockIndex,
 			&noti.BlockTime,
+			&noti.TxID,
 			&noti.VMState,
 			&noti.Contract,
 			&noti.EventName,
@@ -230,9 +234,9 @@ func GetAppLogNotifications(startPK, limit uint) []*models.Notification {
 
 		err := rows.Scan(
 			&noti.ID,
-			&noti.TxID,
 			&noti.BlockIndex,
 			&noti.BlockTime,
+			&noti.TxID,
 			&noti.VMState,
 			&noti.Contract,
 			&noti.EventName,
@@ -277,6 +281,8 @@ func insertAppLogBasic(sqlTx *sql.Tx, appLog *models.ApplicationLog) error {
 	}
 
 	args := []interface{}{
+		appLog.BlockIndex,
+		appLog.BlockTime,
 		appLog.TxID,
 		appLog.Trigger,
 		appLog.VMState,
@@ -317,9 +323,9 @@ func insertAppLogNotifications(sqlTx *sql.Tx, notifications []models.Notificatio
 		state := noti.MarshalState()
 
 		args = append(args,
-			noti.TxID,
 			noti.BlockIndex,
 			noti.BlockTime,
+			noti.TxID,
 			noti.VMState,
 			noti.Contract,
 			noti.EventName,

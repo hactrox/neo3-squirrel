@@ -25,6 +25,6 @@ func persistApplicationLogs(appLogChan <-chan *appLogResult) {
 		// Store applicationlog result
 		appLog := models.ParseApplicationLog(tx, logResult)
 		appLog.GasConsumed = convert.AmountReadable(appLog.GasConsumed, 8)
-		db.InsertApplicationLog(&appLog)
+		db.InsertApplicationLog(appLog)
 	}
 }

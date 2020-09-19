@@ -10,6 +10,8 @@ import (
 // ApplicationLog db model.
 type ApplicationLog struct {
 	ID            uint
+	BlockIndex    uint
+	BlockTime     uint64
 	TxID          string
 	Trigger       string
 	VMState       string
@@ -79,9 +81,11 @@ func (noti *Notification) UnmarshalState(state []byte) {
 }
 
 // ParseApplicationLog parses struct raw application log rpc query result to db model.
-func ParseApplicationLog(tx *Transaction, appLogResult *rpc.ApplicationLogResult) ApplicationLog {
+func ParseApplicationLog(tx *Transaction, appLogResult *rpc.ApplicationLogResult) *ApplicationLog {
 	appLog := ApplicationLog{
 		TxID:        appLogResult.TxID,
+		BlockIndex:  tx.BlockIndex,
+		BlockTime:   tx.BlockTime,
 		Trigger:     appLogResult.Trigger,
 		VMState:     appLogResult.VMState,
 		GasConsumed: appLogResult.GasConsumed,
@@ -120,7 +124,7 @@ func ParseApplicationLog(tx *Transaction, appLogResult *rpc.ApplicationLogResult
 		appLog.Notifications = append(appLog.Notifications, noti)
 	}
 
-	return appLog
+	return &appLog
 }
 
 // ParseStackItem convert rpc.StackItem to models.StackItem.
