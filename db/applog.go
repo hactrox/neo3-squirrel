@@ -280,7 +280,7 @@ func insertAppLogBasic(sqlTx *sql.Tx, appLog *models.ApplicationLog) error {
 		appLog.TxID,
 		appLog.Trigger,
 		appLog.VMState,
-		fmt.Sprintf("%.8f", appLog.GasConsumed),
+		convert.BigFloatToString(appLog.GasConsumed),
 		appLog.MarshalStack(),
 		len(appLog.Notifications),
 	}
