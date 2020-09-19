@@ -59,7 +59,7 @@ func StartNEP5TransferSyncTask() {
 	}
 
 	msgs := []string{
-		fmt.Sprintf("%s: %s", color.Green("Up to block index"), color.BGreenf("%d%s", upToBlockHeight, upToBlockTime)),
+		fmt.Sprintf("%s: %s", color.Green("Up to block index"), color.BGreenf("%d(%s)", upToBlockHeight, upToBlockTime)),
 		fmt.Sprintf("%s: %s", color.Green("Notification left"), color.BGreenf("%d", remainingNotis)),
 	}
 	log.Info(color.Green("NEP5 transfer sync progress:"))
