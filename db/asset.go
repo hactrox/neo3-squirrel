@@ -125,7 +125,7 @@ func insertNewAsset(sqlTx *sql.Tx, asset *models.Asset) error {
 		asset.Symbol,
 		asset.Decimals,
 		asset.Type,
-		fmt.Sprintf("%.8f", asset.TotalSupply),
+		convert.BigFloatToString(asset.TotalSupply),
 	}
 
 	result, err := sqlTx.Exec(mysql.Compose(query), args...)
