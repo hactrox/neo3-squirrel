@@ -107,4 +107,11 @@ SELECT 'check addr asset transfers', IF(
             JOIN `address` ON `cal`.`address` = `address`.`address`
         WHERE `cal`.`transfers` <> `address`.transfers
     )
+, 'PASS', 'FAIL')
+
+UNION ALL
+
+SELECT 'check address count', IF(
+    (SELECT IFNULL((SELECT COUNT(`id`) FROM `address`), 0)) -
+    (SELECT `addr_count` FROM `counter`) = 0
 , 'PASS', 'FAIL');

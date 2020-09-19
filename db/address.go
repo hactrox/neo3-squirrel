@@ -1,10 +1,12 @@
 package db
 
 import (
+	"database/sql"
 	"fmt"
 	"neo3-squirrel/models"
 	"neo3-squirrel/pkg/mysql"
 	"neo3-squirrel/util/log"
+	"sort"
 	"strings"
 )
 
@@ -52,4 +54,85 @@ func GetAllAddressInfo() []*models.AddressInfo {
 	}
 
 	return addrInfo
+}
+
+func updateAddressInfo(sqlTx *sql.Tx, delta map[string]*models.AddressInfo) error {
+	if len(delta) == 0 {
+		return nil
+	}
+
+	// Sort addresses to avoid potential sql dead lock.
+	addresses := []string{}
+	for addr := range delta {
+		addresses = append(addresses, addr)
+	}
+
+	sort.Strings(addresses)
+
+	var insertionStrBuilder strings.Builder
+	var updatesStrBuilder strings.Builder
+
+	addrAdded := uint(0)
+	for _, addr := range addresses {
+		firstTxTime := delta[addr].FirstTxTime
+		lastTxTime := delta[addr].LastTxTime
+		transfersDelta := delta[addr].Transfers
+
+		// The new address info should be inserted.
+		if firstTxTime == lastTxTime {
+			addrAdded++
+			insertionStrBuilder.WriteString(fmt.Sprintf(", ('%s', %d, %d, %d)",
+				addr, firstTxTime, lastTxTime, transfersDelta))
+			continue
+		}
+
+		// The address record should be updated.
+		updateSQL := []string{
+			"UPDATE `address`",
+			fmt.Sprintf("SET `last_tx_time` = %d", lastTxTime),
+			fmt.Sprintf(", `transfers` = `transfers` + %d", transfersDelta),
+			fmt.Sprintf("WHERE `address` = '%s'", addr),
+			"LIMIT 1",
+		}
+
+		updatesStrBuilder.WriteString(strings.Join(updateSQL, " ") + ";")
+	}
+
+	sql := ""
+	if insertionStrBuilder.Len() > 0 {
+		sql += fmt.Sprintf("INSERT INTO `address`(%s) VALUES ", strings.Join(addressInfoColumn[1:], ", "))
+		sql += insertionStrBuilder.String()[2:] + ";"
+
+	}
+	sql += updatesStrBuilder.String()
+
+	_, err := sqlTx.Exec(sql)
+	if err != nil {
+		log.Error(sql)
+		log.Panic(err)
+	}
+
+	if addrAdded > 0 {
+		if err := addAddressCount(sqlTx, addrAdded); err != nil {
+			return err
+		}
+	}
+
+	return err
+}
+
+func addAddressCount(sqlTx *sql.Tx, added uint) error {
+	query := []string{
+		"UPDATE `counter`",
+		fmt.Sprintf("SET `addr_count` = `addr_count` + %d", added),
+		"WHERE `id` = 1",
+		"LIMIT 1",
+	}
+
+	_, err := sqlTx.Exec(mysql.Compose(query))
+	if err != nil {
+		log.Error(err)
+	}
+
+	return err
 }

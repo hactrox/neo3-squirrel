@@ -212,62 +212,6 @@ func getNEP5AddrAssetRecord(sqlTx *sql.Tx, address, contract string) (*models.Ad
 	return &addrAsset, nil
 }
 
-func updateAddressInfo(sqlTx *sql.Tx, delta map[string]*models.AddressInfo) error {
-	if len(delta) == 0 {
-		return nil
-	}
-
-	// Sort addresses to avoid potential sql dead lock.
-	addresses := []string{}
-	for addr := range delta {
-		addresses = append(addresses, addr)
-	}
-
-	sort.Strings(addresses)
-
-	var insertionStrBuilder strings.Builder
-	var updatesStrBuilder strings.Builder
-
-	for _, addr := range addresses {
-		firstTxTime := delta[addr].FirstTxTime
-		lastTxTime := delta[addr].LastTxTime
-		transfersDelta := delta[addr].Transfers
-
-		// The new address info should be inserted.
-		if firstTxTime == lastTxTime {
-			insertionStrBuilder.WriteString(fmt.Sprintf(", ('%s', %d, %d, %d)",
-				addr, firstTxTime, lastTxTime, transfersDelta))
-			continue
-		}
-
-		// The address record should be updated.
-		updateSQL := []string{
-			"UPDATE `address`",
-			fmt.Sprintf("SET `last_tx_time` = %d", lastTxTime),
-			fmt.Sprintf(", `transfers` = `transfers` + %d", transfersDelta),
-			fmt.Sprintf("WHERE `address` = '%s'", addr),
-			"LIMIT 1",
-		}
-
-		updatesStrBuilder.WriteString(strings.Join(updateSQL, " ") + ";")
-	}
-
-	sql := ""
-	if insertionStrBuilder.Len() > 0 {
-		sql += fmt.Sprintf("INSERT INTO `address`(%s) VALUES ", strings.Join(addressInfoColumn[1:], ", "))
-		sql += insertionStrBuilder.String()[2:] + ";"
-	}
-	sql += updatesStrBuilder.String()
-
-	_, err := sqlTx.Exec(sql)
-	if err != nil {
-		log.Error(sql)
-		log.Panic(err)
-	}
-
-	return err
-}
-
 func updateContractTotalSupply(sqlTx *sql.Tx, contract string, totalSupply *big.Float) error {
 	query := []string{
 		"UPDATE `asset`",
