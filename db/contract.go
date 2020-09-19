@@ -81,8 +81,8 @@ func GetLastContractStateRecord() *models.ContractState {
 	return &m
 }
 
-// InsertNewContractStates inserts new contract into DB.
-func InsertNewContractStates(contracts, added, deleted []*models.ContractState, migrated map[*models.ContractState]*models.ContractState) {
+// HandleContractStates inserts new contract into DB.
+func HandleContractStates(contracts, added, deleted []*models.ContractState, migrated map[*models.ContractState]*models.ContractState) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
 		if err := insertContracStates(sqlTx, contracts); err != nil {
 			return err

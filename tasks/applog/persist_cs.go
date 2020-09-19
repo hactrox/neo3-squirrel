@@ -55,7 +55,7 @@ func handleContractStateChange(csList []*models.ContractState) {
 		}
 	}
 
-	db.InsertNewContractStates(contractStates, added, deleted, migrated)
+	db.HandleContractStates(contractStates, added, deleted, migrated)
 }
 
 func updateIfNEP5(c *models.ContractState) {
