@@ -140,3 +140,27 @@ func insertNewAsset(sqlTx *sql.Tx, asset *models.Asset) error {
 	mysql.CheckIfRowsNotAffected(result, query)
 	return nil
 }
+
+func deleteAsset(sqlTx *sql.Tx, hashes []string) error {
+	if len(hashes) == 0 {
+		return nil
+	}
+
+	hashesParam := ""
+	for _, hash := range hashes {
+		hashesParam += fmt.Sprintf(", '%s'", hash)
+	}
+	hashesParam = hashesParam[2:]
+
+	query := []string{
+		"DELETE FROM `asset`",
+		fmt.Sprintf("WHERE `contract` IN (%s)", hashesParam),
+	}
+
+	_, err := sqlTx.Exec(mysql.Compose(query))
+	if err != nil {
+		log.Error(err)
+	}
+
+	return err
+}

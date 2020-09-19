@@ -146,6 +146,14 @@ func updateContracts(sqlTx *sql.Tx, added, deleted []*models.ContractState, migr
 		if err := removeDeletedAddrAssets(sqlTx, deleted); err != nil {
 			return err
 		}
+
+		deletedContractHashes := []string{}
+		for _, cs := range deleted {
+			deletedContractHashes = append(deletedContractHashes, cs.Hash)
+		}
+		if err := deleteAsset(sqlTx, deletedContractHashes); err != nil {
+			return err
+		}
 	}
 
 	if len(migrated) > 0 {
