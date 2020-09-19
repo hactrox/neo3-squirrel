@@ -101,7 +101,7 @@ func insertNEP5Transfer(sqlTx *sql.Tx, transfers []*models.Transfer) error {
 			transfer.Contract,
 			transfer.From,
 			transfer.To,
-			fmt.Sprintf("%.8f", transfer.Amount),
+			convert.BigFloatToString(transfer.Amount),
 		)
 	}
 
@@ -145,7 +145,8 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 		}
 
 		if addrAssetRec == nil {
-			insertsStrBuilder.WriteString(fmt.Sprintf(", ('%s', '%s', %.8f, %d)", contract, address, balance, newTransfers))
+			insertsStrBuilder.WriteString(fmt.Sprintf(", ('%s', '%s', %s, %d)",
+				contract, address, convert.BigFloatToString(balance), newTransfers))
 			continue
 		}
 
@@ -156,7 +157,7 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 
 		updateSQL := []string{
 			"UPDATE `addr_asset`",
-			fmt.Sprintf("SET `balance`=%.8f", balance),
+			fmt.Sprintf("SET `balance`=%s", convert.BigFloatToString(balance)),
 			fmt.Sprintf(", `transfers`=`transfers`+%d", newTransfers),
 			fmt.Sprintf("WHERE `contract`='%s' AND `address`='%s'", contract, address),
 			"LIMIT 1",
@@ -270,7 +271,7 @@ func updateAddressInfo(sqlTx *sql.Tx, delta map[string]*models.AddressInfo) erro
 func updateContractTotalSupply(sqlTx *sql.Tx, contract string, totalSupply *big.Float) error {
 	query := []string{
 		"UPDATE `asset`",
-		fmt.Sprintf("SET `total_supply` = %.8f", totalSupply),
+		fmt.Sprintf("SET `total_supply` = %s", convert.BigFloatToString(totalSupply)),
 		fmt.Sprintf("WHERE `contract` = '%s'", contract),
 		"LIMIT 1",
 	}
@@ -290,7 +291,7 @@ func updateCommitteeGASBalances(sqlTx *sql.Tx, committeeBalances map[string]*big
 	for addr, gasBalance := range committeeBalances {
 		query := []string{
 			"UPDATE `addr_asset`",
-			fmt.Sprintf("SET `balance` = %.8f", gasBalance),
+			fmt.Sprintf("SET `balance` = %s", convert.BigFloatToString(gasBalance)),
 			fmt.Sprintf("WHERE `contract` = '%s' AND `address` = '%s'", models.GAS, addr),
 			"LIMIT 1",
 		}
