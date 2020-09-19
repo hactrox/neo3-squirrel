@@ -1,8 +1,8 @@
 package nep5
 
 import (
-	"encoding/base64"
 	"fmt"
+	"neo3-squirrel/cache/asset"
 	"neo3-squirrel/cache/gas"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
@@ -20,21 +20,20 @@ var (
 	chanSize = 5000
 
 	// nep5Assets loads all known NEP5 assets from DB.
-	nep5Assets = map[string]*models.Asset{}
+	// nep5Assets = map[string]*models.Asset{}
 )
 
 type notiTransfer struct {
-	TxID      string
-	transfers []*models.Transfer
+	TxID       string
+	BlockIndex uint
+	transfers  []*models.Transfer
 }
 
 // StartNEP5TransferSyncTask starts NEP5 transfer related tasks.
 func StartNEP5TransferSyncTask() {
 	// Load all known assets from DB.
 	assets := db.GetAllAssets("nep5")
-	for _, asset := range assets {
-		nep5Assets[asset.Contract] = asset
-	}
+	asset.UpdateNEP5Assets(assets)
 
 	lastTransferNoti := db.GetLastNotiForNEP5Task()
 	upToBlockHeight := uint(0)
@@ -116,7 +115,10 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 
 		for _, notis := range notiArrays {
 			txID := notis[0].TxID
-			txTransfers := notiTransfer{TxID: txID}
+			txTransfers := notiTransfer{
+				TxID:       txID,
+				BlockIndex: notis[0].BlockIndex,
+			}
 
 			for _, noti := range notis {
 				switch strings.ToLower(noti.EventName) {
@@ -134,9 +136,7 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 				}
 			}
 
-			if len(txTransfers.transfers) > 0 {
-				transferChan <- &txTransfers
-			}
+			transferChan <- &txTransfers
 		}
 
 		lastTxID := notis[len(notis)-1].TxID
@@ -164,16 +164,15 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 
 	// Get contract info.
 	contract := noti.Contract
-	var asset *models.Asset
-	if nep5Asset, ok := nep5Assets[contract]; ok {
-		asset = nep5Asset
-	} else {
-		asset = queryNEP5AssetInfo(noti, contract)
-		if asset == nil {
+	decimals, ok := asset.GetNEP5Decimals(contract)
+	if !ok {
+		nep5 := queryNEP5AssetInfo(noti, contract)
+		if nep5 == nil {
 			return nil
 		}
 
-		nep5Assets[asset.Contract] = asset
+		asset.UpdateNEP5Asset(nep5)
+		decimals = nep5.Decimals
 	}
 
 	// Parse Transfer Info.
@@ -184,7 +183,7 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 		return nil
 	}
 
-	readableAmount := convert.AmountReadable(amount, asset.Decimals)
+	readableAmount := convert.AmountReadable(amount, decimals)
 
 	transfer := models.Transfer{
 		BlockIndex: noti.BlockIndex,
@@ -225,64 +224,4 @@ func queryNEP5AssetInfo(noti *models.Notification, contract string) *models.Asse
 	}
 
 	return &asset
-}
-
-func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {
-	if util.VMStateFault(noti.VMState) {
-		log.Debugf("VM execution status FAULT: %s", noti.TxID)
-		return false
-	}
-
-	if noti.State == nil ||
-		len(noti.State.Value) == 0 {
-		return false
-	}
-
-	addrAssets := []*models.AddrAsset{}
-
-	for _, stackItem := range noti.State.Value {
-		if stackItem.Type != "ByteString" {
-			continue
-		}
-
-		value := stackItem.Value.(string)
-		bytes, err := base64.StdEncoding.DecodeString(value)
-		if err != nil {
-			panic(err)
-		}
-
-		if len(bytes) != 20 {
-			continue
-		}
-
-		addr, ok := util.ExtractAddressFromByteString(value)
-		if !ok {
-			continue
-		}
-
-		contract := noti.Contract
-
-		asset, ok := nep5Assets[contract]
-		if !ok {
-			continue
-		}
-
-		balance, ok := util.QueryNEP5Balance(noti.BlockIndex, addr, contract, asset.Decimals)
-		if !ok {
-			continue
-		}
-
-		addrAssets = append(addrAssets, &models.AddrAsset{
-			Address:   addr,
-			Contract:  contract,
-			Balance:   balance,
-			Transfers: 0,
-		})
-	}
-
-	if len(addrAssets) > 0 {
-		db.PersistNEP5Balances(addrAssets)
-	}
-
-	return len(addrAssets) > 0
 }

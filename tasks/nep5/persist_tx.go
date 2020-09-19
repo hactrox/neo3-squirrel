@@ -1,7 +1,9 @@
 package nep5
 
 import (
+	"encoding/base64"
 	"fmt"
+	"neo3-squirrel/cache/asset"
 	"neo3-squirrel/cache/block"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
@@ -34,7 +36,10 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 		for _, transfer := range txTransfers.transfers {
 			minBlockIndex := transfer.BlockIndex
 			contract := transfer.Contract
-			asset := nep5Assets[contract]
+			decimals, ok := asset.GetNEP5Decimals(contract)
+			if !ok {
+				continue
+			}
 			addrs := map[string]bool{}
 			if len(transfer.From) > 0 {
 				addrs[transfer.From] = true
@@ -53,7 +58,7 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 
 				sleepIfGasConsumed(&slept, minBlockIndex, transfer.TxID, contract, addr)
 
-				balance, ok := util.QueryNEP5Balance(minBlockIndex, addr, contract, asset.Decimals)
+				balance, ok := util.QueryNEP5Balance(minBlockIndex, addr, contract, decimals)
 				if !ok {
 					continue
 				}
@@ -113,7 +118,7 @@ func showTransfers(transfers []*models.Transfer) {
 		to := transfer.To
 		amount := transfer.Amount
 		contract := transfer.Contract
-		asset, ok := nep5Assets[contract]
+		symbol, ok := asset.GetNEP5Symbol(contract)
 		if !ok {
 			log.Panicf("Failed to get asset info of contract %s", contract)
 		}
@@ -124,19 +129,79 @@ func showTransfers(transfers []*models.Transfer) {
 		if len(from) == 0 {
 			// Claim GAS.
 			if contract == models.GAS {
-				msg = fmt.Sprintf("GAS claimed: %s %s -> %s", amountStr, asset.Symbol, to)
+				msg = fmt.Sprintf("GAS claimed: %s %s -> %s", amountStr, symbol, to)
 			} else {
-				msg = fmt.Sprintf("Mint token: %s %s -> %s", amountStr, asset.Symbol, to)
+				msg = fmt.Sprintf("Mint token: %s %s -> %s", amountStr, symbol, to)
 			}
 		} else {
 			if len(to) == 0 {
-				msg = fmt.Sprintf("Destroy token: %s destroyed %s %s", from, amount, asset.Symbol)
+				msg = fmt.Sprintf("Destroy token: %s destroyed %s %s", from, amount, symbol)
 			} else {
 				msg = fmt.Sprintf("NEP5 transfer: %34s -> %34s, amount: %s %s",
-					from, to, amountStr, asset.Symbol)
+					from, to, amountStr, symbol)
 			}
 		}
 
 		log.Info(color.BLightCyanf(msg))
 	}
+}
+
+func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {
+	if util.VMStateFault(noti.VMState) {
+		log.Debugf("VM execution status FAULT: %s", noti.TxID)
+		return false
+	}
+
+	if noti.State == nil ||
+		len(noti.State.Value) == 0 {
+		return false
+	}
+
+	addrAssets := []*models.AddrAsset{}
+
+	for _, stackItem := range noti.State.Value {
+		if stackItem.Type != "ByteString" {
+			continue
+		}
+
+		value := stackItem.Value.(string)
+		bytes, err := base64.StdEncoding.DecodeString(value)
+		if err != nil {
+			panic(err)
+		}
+
+		if len(bytes) != 20 {
+			continue
+		}
+
+		addr, ok := util.ExtractAddressFromByteString(value)
+		if !ok {
+			continue
+		}
+
+		contract := noti.Contract
+
+		decimals, ok := asset.GetNEP5Decimals(contract)
+		if !ok {
+			continue
+		}
+
+		balance, ok := util.QueryNEP5Balance(noti.BlockIndex, addr, contract, decimals)
+		if !ok {
+			continue
+		}
+
+		addrAssets = append(addrAssets, &models.AddrAsset{
+			Address:   addr,
+			Contract:  contract,
+			Balance:   balance,
+			Transfers: 0,
+		})
+	}
+
+	if len(addrAssets) > 0 {
+		db.PersistNEP5Balances(addrAssets)
+	}
+
+	return len(addrAssets) > 0
 }

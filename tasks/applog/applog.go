@@ -6,7 +6,6 @@ import (
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
 	"neo3-squirrel/util/color"
-	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
 	"neo3-squirrel/util/timeutil"
 	"sync"
@@ -60,7 +59,7 @@ func StartApplicationLogSyncTask() {
 	go fetchApplicationLogs(nextTxPK, preAppLogChan, appLogChan)
 	go queryAppLog(3, preAppLogChan)
 
-	go handleApplicationLogs(appLogChan)
+	go persistApplicationLogs(appLogChan)
 }
 
 func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *models.Transaction, appLogChan chan<- *appLogResult) {
@@ -117,20 +116,5 @@ func queryAppLog(workers int, preAppLogChan <-chan *models.Transaction) {
 				// log.Debugf("store applog result into appLogs, txID=%s, len(noti)=%d", tx.Hash, len(appLogQueryResult.Notifications))
 			}
 		}(preAppLogChan)
-	}
-}
-
-func handleApplicationLogs(appLogChan <-chan *appLogResult) {
-	// TODO: mail alert
-
-	for result := range appLogChan {
-		tx := result.tx
-		logResult := result.appLogQueryResult
-		// log.Debugf("handle application log of txID: %s", tx.Hash)
-
-		// Store applicationlog result
-		appLog := models.ParseApplicationLog(tx, logResult)
-		appLog.GasConsumed = convert.AmountReadable(appLog.GasConsumed, 8)
-		db.InsertApplicationLog(&appLog)
 	}
 }

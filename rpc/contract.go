@@ -13,6 +13,12 @@ type InvokefunctionResponse struct {
 	Result *InvokeFunctionResult `json:"result"`
 }
 
+// ContractStatesResponse is the response structure of rpc call 'getcontractstates'.
+type ContractStatesResponse struct {
+	responseCommon
+	Result []*ContractState `json:"result"`
+}
+
 // InvokeFunctionResult represents invokefunction query result.
 type InvokeFunctionResult struct {
 	Script      string      `json:"script"`
@@ -28,14 +34,30 @@ type StackItem struct {
 	Value interface{} `json:"value"`
 }
 
+// ContractState represents 'getcontractstates' query result.
+type ContractState struct {
+	ID          int         `json:"id"`
+	Hash        string      `json:"hash"`
+	Script      string      `json:"script"`
+	Manifest    interface{} `json:"manifest"`
+	BlockIndex  uint        `json:"blockindex"`
+	BlockTime   uint64      `json:"blocktime"`
+	State       string      `json:"state"`
+	TxID        string      `json:"txid"`
+	Name        string      `json:"name"`
+	Symbol      string      `json:"symbol"`
+	Decimals    uint        `json:"decimals"`
+	TotalSupply *big.Float  `json:"totalSupply"`
+}
+
 // InvokeFunction reflects the rpc call 'invokefunction'.
 func InvokeFunction(minBlockIndex uint, contract, invokeFunc string, parameters []interface{}) *InvokeFunctionResult {
+	const method = "invokefunction"
 	params := []interface{}{contract, invokeFunc}
 	if len(parameters) > 0 {
 		params = append(params, parameters...)
 	}
 
-	const method = "invokefunction"
 	args := generateRequestBody(method, params)
 	resp := InvokefunctionResponse{}
 	retryCnt := uint(0)
@@ -60,4 +82,15 @@ func InvokeFunction(minBlockIndex uint, contract, invokeFunc string, parameters 
 
 		time.Sleep(time.Duration(delay) * time.Millisecond)
 	}
+}
+
+// GetContractStates reflects the rpc call 'getcontractstates'.
+func GetContractStates(fromBlockIndex, batches uint) []*ContractState {
+	const method = "getcontractstates"
+	params := []interface{}{fromBlockIndex, batches}
+
+	args := generateRequestBody(method, params)
+	resp := ContractStatesResponse{}
+	call(fromBlockIndex, args, &resp)
+	return resp.Result
 }

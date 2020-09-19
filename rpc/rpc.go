@@ -118,7 +118,7 @@ func call(minHeight uint, params string, target interface{}) {
 	err := json.Unmarshal(bodyBytes, target)
 	if err != nil {
 		log.Error(errors.New(eParser.Wrap(err, 0).ErrorStack()))
-		log.Error("Request body: %v\n", string(requestBody))
-		log.Error("Response: %v\n", string(bodyBytes))
+		log.Errorf("Request body: %v", string(requestBody))
+		log.Errorf("Response: %v", string(bodyBytes))
 	}
 }
