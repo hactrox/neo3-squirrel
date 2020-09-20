@@ -5,6 +5,7 @@ import (
 	"encoding/hex"
 	"neo3-squirrel/util/byteutil"
 
+	//lint:ignore SA1019 used for Neo address script hash calculation.
 	"golang.org/x/crypto/ripemd160"
 )
 
