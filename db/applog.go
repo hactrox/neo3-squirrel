@@ -309,7 +309,7 @@ func insertAppLogNotifications(sqlTx *sql.Tx, notifications []models.Notificatio
 	}
 
 	var strBuilder strings.Builder
-	strBuilder.WriteString(fmt.Sprintf("INSERT INTO `applicationlog_notification`"))
+	strBuilder.WriteString("INSERT INTO `applicationlog_notification`")
 	strBuilder.WriteString(fmt.Sprintf("(%s)", strings.Join(appLogNotiColumns[1:], ", ")))
 	strBuilder.WriteString("VALUES")
 

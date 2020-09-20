@@ -218,7 +218,7 @@ func deleteContracts(sqlTx *sql.Tx, deleted []*models.ContractState) error {
 	for _, c := range deleted {
 		sql := []string{
 			"UPDATE `contract`",
-			fmt.Sprintf("SET `state` = 'Deleted'"),
+			"SET `state` = 'Deleted'",
 			fmt.Sprintf("WHERE `hash` = '%s'", c.Hash),
 			"LIMIT 1;",
 		}
@@ -269,7 +269,7 @@ func migrateContracts(sqlTx *sql.Tx, migrates map[*models.ContractState]*models.
 	for new, old := range migrates {
 		sql := []string{
 			"UPDATE `contract`",
-			fmt.Sprintf("SET `state` = 'Migrated'"),
+			"SET `state` = 'Migrated'",
 			fmt.Sprintf(", `new_hash` = '%s'", new.Hash),
 			fmt.Sprintf("WHERE `hash` = '%s'", old.Hash),
 			"LIMIT 1",
