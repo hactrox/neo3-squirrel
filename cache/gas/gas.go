@@ -28,3 +28,12 @@ func CacheGASTotalSupply(newBlockIndex uint, newTotalSupply *big.Float) {
 func CachedTillBlockIndex() uint {
 	return blockIndex
 }
+
+// GetTotalSupply returns cached GAS total supply
+// recorded in which block index.
+func GetTotalSupply() (*big.Float, uint) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	return totalSupply, blockIndex
+}
