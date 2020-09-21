@@ -42,14 +42,9 @@ func StartNEP5TransferSyncTask() {
 	lastNotiTxID := ""
 
 	if lastTransferNoti != nil {
-		tx := db.GetTransaction(lastTransferNoti.TxID)
-		if tx == nil {
-			log.Panicf("Failed to get tx detail of tx %s", lastTransferNoti.TxID)
-		}
-
-		upToBlockHeight = tx.BlockIndex
+		upToBlockHeight = lastTransferNoti.BlockIndex
 		if upToBlockHeight > 0 {
-			upToBlockTime = fmt.Sprintf("(%s)", timeutil.FormatBlockTime(tx.BlockTime))
+			upToBlockTime = fmt.Sprintf("(%s)", timeutil.FormatBlockTime(lastTransferNoti.BlockTime))
 		}
 
 		remainingNotis = db.GetNotificationCount(lastTransferNoti.ID+1, lastTransferNoti.TxID)
