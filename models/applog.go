@@ -81,11 +81,11 @@ func (noti *Notification) UnmarshalState(state []byte) {
 }
 
 // ParseApplicationLog parses struct raw application log rpc query result to db model.
-func ParseApplicationLog(tx *Transaction, appLogResult *rpc.ApplicationLogResult) *ApplicationLog {
+func ParseApplicationLog(blockIndex uint, blockTime uint64, appLogResult *rpc.ApplicationLogResult) *ApplicationLog {
 	appLog := ApplicationLog{
 		TxID:        appLogResult.TxID,
-		BlockIndex:  tx.BlockIndex,
-		BlockTime:   tx.BlockTime,
+		BlockIndex:  blockIndex,
+		BlockTime:   blockTime,
 		Trigger:     appLogResult.Trigger,
 		VMState:     appLogResult.VMState,
 		GasConsumed: appLogResult.GasConsumed,
@@ -103,8 +103,8 @@ func ParseApplicationLog(tx *Transaction, appLogResult *rpc.ApplicationLogResult
 	for _, notiResult := range appLogResult.Notifications {
 		noti := Notification{
 			TxID:       appLogResult.TxID,
-			BlockIndex: tx.BlockIndex,
-			BlockTime:  tx.BlockTime,
+			BlockIndex: blockIndex,
+			BlockTime:  blockTime,
 			VMState:    appLogResult.VMState,
 			Contract:   notiResult.Contract,
 			EventName:  notiResult.EventName,

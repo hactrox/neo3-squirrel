@@ -2,8 +2,8 @@ package applog
 
 import (
 	"fmt"
+	"neo3-squirrel/cache/block"
 	"neo3-squirrel/db"
-	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/log"
@@ -19,8 +19,15 @@ var (
 	appLogs sync.Map
 )
 
+type preAppLog struct {
+	BlockIndex uint
+	Hash       string
+}
+
 type appLogResult struct {
-	tx                *models.Transaction
+	BlockIndex        uint
+	BlockTime         uint64
+	Hash              string
 	appLogQueryResult *rpc.ApplicationLogResult
 }
 
@@ -53,7 +60,7 @@ func StartApplicationLogSyncTask() {
 
 	// Starts task.
 
-	preAppLogChan := make(chan *models.Transaction, chanSize)
+	preAppLogChan := make(chan *preAppLog, chanSize)
 	appLogChan := make(chan *appLogResult, chanSize)
 
 	go fetchApplicationLogs(nextTxPK, preAppLogChan, appLogChan)
@@ -62,59 +69,86 @@ func StartApplicationLogSyncTask() {
 	go persistApplicationLogs(appLogChan)
 }
 
-func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *models.Transaction, appLogChan chan<- *appLogResult) {
+func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *preAppLog, appLogChan chan<- *appLogResult) {
 	// TODO: mail alert
 
+	// Skip the genesis block.
+	nextBlockIndex := uint(1)
+	lastBlockAppLog := db.GetLastBlockAppLog()
+	if lastBlockAppLog != nil {
+		nextBlockIndex = lastBlockAppLog.BlockIndex + 1
+	}
+
 	for {
-		txs := db.GetTransactions(nextTxPK, 1000)
+		txs := db.GetTransactions(nextTxPK, 20)
 		if len(txs) == 0 {
 			time.Sleep(1 * time.Second)
 			continue
 		}
 
+		// Prepare app log result.
+		queryResult := []*appLogResult{}
+
 		// Send transactions to applog channel
 		// and waiting for the applog query result.
 		for _, tx := range txs {
-			preAppLogChan <- tx
+			if tx.BlockIndex >= nextBlockIndex {
+				block, ok := block.GetBlock(tx.BlockIndex)
+				if !ok {
+					block = db.GetBlock(tx.BlockIndex)
+					if block == nil {
+						log.Panicf("Failed to get block at index %d", tx.BlockIndex)
+					}
+				}
+
+				preAppLogChan <- &preAppLog{
+					BlockIndex: block.Index,
+					Hash:       block.Hash,
+				}
+				queryResult = append(queryResult, &appLogResult{
+					BlockIndex:        tx.BlockIndex,
+					BlockTime:         tx.BlockTime,
+					Hash:              block.Hash,
+					appLogQueryResult: nil,
+				})
+			}
+
+			preAppLogChan <- &preAppLog{
+				BlockIndex: tx.BlockIndex,
+				Hash:       tx.Hash,
+			}
+			queryResult = append(queryResult, &appLogResult{
+				BlockIndex:        tx.BlockIndex,
+				BlockTime:         tx.BlockTime,
+				Hash:              tx.Hash,
+				appLogQueryResult: nil,
+			})
+
 			// log.Debugf("send tx %s to preAppLogChan", tx.Hash)
 		}
 
 		nextTxPK = txs[len(txs)-1].ID + 1
 
-		for _, tx := range txs {
+		for i := 0; i < len(queryResult); i++ {
 			for {
+				re := queryResult[i]
+
 				// Get applicationlog from
-				result, ok := appLogs.Load(tx.Hash)
+				result, ok := appLogs.Load(re.Hash)
 				if !ok {
-					time.Sleep(10 * time.Millisecond)
+					time.Sleep(1000 * time.Millisecond)
 					continue
 				}
 
-				appLogs.Delete(tx.Hash)
+				appLogs.Delete(re.Hash)
 
-				appLog := appLogResult{
-					tx:                tx,
-					appLogQueryResult: result.(*rpc.ApplicationLogResult),
-				}
-				appLogChan <- &appLog
-				// log.Debugf("send appLog of tx %s into appLogChan", tx.Hash)
+				re.appLogQueryResult = result.(*rpc.ApplicationLogResult)
+				re.appLogQueryResult.TxID = re.Hash
+
+				appLogChan <- re
+				// log.Debugf("send appLog of tx %s into appLogChan", re.Hash)
 				break
 			}
 		}
-	}
-}
-
-func queryAppLog(workers int, preAppLogChan <-chan *models.Transaction) {
-	// TODO: mail alert
-
-	for i := 0; i < workers; i++ {
-		go func(ch <-chan *models.Transaction) {
-			for tx := range ch {
-				// log.Debugf("prepare to query applicationlog of tx %s", tx.Hash)
-				appLogQueryResult := rpc.GetApplicationLog(tx.BlockIndex, tx.Hash)
-				appLogs.Store(tx.Hash, appLogQueryResult)
-				// log.Debugf("store applog result into appLogs, txID=%s, len(noti)=%d", tx.Hash, len(appLogQueryResult.Notifications))
-			}
-		}(preAppLogChan)
 	}
 }

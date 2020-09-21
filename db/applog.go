@@ -47,6 +47,19 @@ func InsertApplicationLog(appLog *models.ApplicationLog) {
 	})
 }
 
+// GetLastBlockAppLog returns the last block application log record.
+func GetLastBlockAppLog() *models.ApplicationLog {
+	query := []string{
+		fmt.Sprintf("SELECT %s", strings.Join(appLogColumns, ", ")),
+		"FROM `applicationlog`",
+		"WHERE `trigger` = 'System'",
+		"ORDER BY `id` DESC",
+		"LIMIT 1",
+	}
+
+	return getApplicatoinLogQuery(mysql.Compose(query))
+}
+
 // GetApplicationLogByID returns application log by primary key.
 func GetApplicationLogByID(pk uint) *models.ApplicationLog {
 	query := []string{

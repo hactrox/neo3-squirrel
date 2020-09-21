@@ -6,7 +6,7 @@ import (
 	"sync"
 )
 
-const maxCachedBlocks = 100
+const maxCachedBlocks = 50000
 
 var (
 	blockIndexQueue  = list.New()
@@ -31,6 +31,8 @@ func CacheBlocks(blocks []*models.Block) {
 }
 
 // CacheBlock caches a single block and its transactoins.
+// If cached block size exceeded the limite,
+// lowerest indexes will be removed.
 func CacheBlock(block *models.Block) {
 	if block == nil {
 		return
@@ -72,12 +74,37 @@ func CacheBlock(block *models.Block) {
 
 // GetBlock returns the block of the given index if cached.
 func GetBlock(blockIndex uint) (*models.Block, bool) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	block, ok := lastBlocks[blockIndex]
 	return block, ok
 }
 
+// GetBlockHashes returns block hashes which indexes in range [startBlockIndex, endBlockIndex].
+func GetBlockHashes(startBlockIndex, endBlockIndex uint) ([]string, bool) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
+	hashes := []string{}
+
+	for index := startBlockIndex; index <= endBlockIndex; index++ {
+		block, ok := lastBlocks[index]
+		if !ok {
+			return nil, false
+		}
+
+		hashes = append(hashes, block.Hash)
+	}
+
+	return hashes, true
+}
+
 // GetTransaction returns the transaction if the given hash if cached.
 func GetTransaction(txID string) (*models.Transaction, bool) {
+	mutex.Lock()
+	defer mutex.Unlock()
+
 	tx, ok := lastTransactions[txID]
 	return tx, ok
 }

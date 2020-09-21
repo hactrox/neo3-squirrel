@@ -9,6 +9,22 @@ import (
 	"strings"
 )
 
+var blockColumns = []string{
+	"`id`",
+	"`hash`",
+	"`size`",
+	"`version`",
+	"`previous_block_hash`",
+	"`merkleroot`",
+	"`txs`",
+	"`time`",
+	"`index`",
+	"`nextconsensus`",
+	"`consensusdata_primary`",
+	"`consensusdata_nonce`",
+	"`nextblockhash`",
+}
+
 // InsertBlock inserts bulk blocks into database.
 func InsertBlock(blocks []*models.Block, txBulk *models.TxBulk) {
 	if len(blocks) == 0 {
@@ -46,28 +62,51 @@ func InsertBlock(blocks []*models.Block, txBulk *models.TxBulk) {
 	})
 }
 
+// GetBlock returns block record from db.
+func GetBlock(index uint) *models.Block {
+	query := []string{
+		fmt.Sprintf("SELECT %s", strings.Join(blockColumns, ", ")),
+		"FROM `block`",
+		fmt.Sprintf("WHERE `index` = %d", index),
+		"LIMIT 1",
+	}
+
+	block := models.Block{}
+
+	err := mysql.QueryRow(mysql.Compose(query), nil,
+		&block.ID,
+		&block.Hash,
+		&block.Size,
+		&block.Version,
+		&block.PreviousBlockHash,
+		&block.MerkleRoot,
+		&block.Txs,
+		&block.Time,
+		&block.Index,
+		&block.NextConsensus,
+		&block.ConsensusDataPrimary,
+		&block.ConsensusDataNonce,
+		&block.NextBlockHash,
+	)
+	if err != nil {
+		if mysql.IsRecordNotFoundError(err) {
+			return nil
+		}
+
+		log.Error(mysql.Compose(query))
+		log.Panic(err)
+	}
+
+	return &block
+}
+
 func generateInsertCmdForBlocks(blocks []*models.Block) string {
 	if len(blocks) == 0 {
 		return ""
 	}
 
-	columns := []string{
-		"`hash`",
-		"`size`",
-		"`version`",
-		"`previous_block_hash`",
-		"`merkleroot`",
-		"`txs`",
-		"`time`",
-		"`index`",
-		"`nextconsensus`",
-		"`consensusdata_primary`",
-		"`consensusdata_nonce`",
-		"`nextblockhash`",
-	}
-
 	var strBuilder strings.Builder
-	strBuilder.WriteString(fmt.Sprintf("INSERT INTO `block` (%s) VALUES ", strings.Join(columns, ", ")))
+	strBuilder.WriteString(fmt.Sprintf("INSERT INTO `block` (%s) VALUES ", strings.Join(blockColumns[1:], ", ")))
 
 	for _, b := range blocks {
 		strBuilder.WriteString(fmt.Sprintf("('%s', %d, %d, '%s', '%s', %d, %d, %d, '%s', %d, '%s', '%s'),",
