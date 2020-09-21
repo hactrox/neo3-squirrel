@@ -69,11 +69,7 @@ func fetchBlock() {
 			continue
 		}
 
-		if config.GetWorkers() == 1 {
-			if nextHeight == rpc.GetBestHeight()+1 {
-				waiting(&waited, nextHeight)
-			}
-		} else if worker.num() == 1 && nextHeight == buffer.GetHighest()+1 {
+		if nextHeight == rpc.GetBestHeight()+1 && (config.GetWorkers() == 1 || worker.num() == 1) {
 			waiting(&waited, nextHeight)
 		}
 
