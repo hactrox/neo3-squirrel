@@ -23,9 +23,10 @@ type ApplicationLog struct {
 // Notification db model.
 type Notification struct {
 	ID         uint
-	TxID       string
 	BlockIndex uint
 	BlockTime  uint64
+	TxID       string
+	Trigger    string
 	VMState    string
 	Contract   string
 	EventName  string
@@ -102,9 +103,10 @@ func ParseApplicationLog(blockIndex uint, blockTime uint64, appLogResult *rpc.Ap
 
 	for _, notiResult := range appLogResult.Notifications {
 		noti := Notification{
-			TxID:       appLogResult.TxID,
 			BlockIndex: blockIndex,
 			BlockTime:  blockTime,
+			TxID:       appLogResult.TxID,
+			Trigger:    appLog.Trigger,
 			VMState:    appLogResult.VMState,
 			Contract:   notiResult.Contract,
 			EventName:  notiResult.EventName,
