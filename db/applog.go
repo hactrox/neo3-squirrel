@@ -169,7 +169,7 @@ func GetGroupedAppLogNotifications(appLogPK, limit uint) []*models.Notification 
 	// WHERE `txid` IN (
 	// 	SELECT `txid` FROM (
 	// 		SELECT `txid` FROM `applicationlog`
-	// 		WHERE `id` > {appLogPK} `limit` {limit}
+	// 		WHERE `id` >= {appLogPK} LIMIT {limit}
 	// 	) `tbl`
 	// );
 
