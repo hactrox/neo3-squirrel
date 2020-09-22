@@ -81,6 +81,15 @@ func (noti *Notification) UnmarshalState(state []byte) {
 	}
 }
 
+// GetSrc returns source of this notification: block or tx.
+func (noti *Notification) GetSrc() string {
+	if noti.Trigger == "Application" {
+		return "tx"
+	}
+
+	return "block"
+}
+
 // ParseApplicationLog parses struct raw application log rpc query result to db model.
 func ParseApplicationLog(blockIndex uint, blockTime uint64, appLogResult *rpc.ApplicationLogResult) *ApplicationLog {
 	appLog := ApplicationLog{

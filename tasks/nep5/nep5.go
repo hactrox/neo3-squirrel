@@ -184,6 +184,7 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 		BlockIndex: noti.BlockIndex,
 		BlockTime:  noti.BlockTime,
 		TxID:       noti.TxID,
+		Src:        noti.GetSrc(),
 		Contract:   noti.Contract,
 		From:       from,
 		To:         to,
