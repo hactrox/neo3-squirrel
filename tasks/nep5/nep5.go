@@ -166,6 +166,9 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 			return nil
 		}
 
+		// log.Debugf("Name=%s, Symbol=%s, Decimals=%v, TotalSupply=%v", name, symbol, decimals, totalSupply)
+		db.InsertNewAsset(nep5)
+
 		asset.UpdateNEP5Asset(nep5)
 		decimals = nep5.Decimals
 	}
@@ -211,9 +214,6 @@ func queryNEP5AssetInfo(noti *models.Notification, contract string) *models.Asse
 			noti.TxID, contract, noti.BlockIndex, timeutil.FormatBlockTime(noti.BlockTime))
 		return nil
 	}
-
-	// log.Debugf("Name=%s, Symbol=%s, Decimals=%v, TotalSupply=%v", name, symbol, decimals, totalSupply)
-	db.InsertNewAsset(&asset)
 
 	if contract == models.GAS && bestBlockIndex > 0 {
 		gas.CacheGASTotalSupply(uint(bestBlockIndex), asset.TotalSupply)

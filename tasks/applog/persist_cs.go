@@ -68,7 +68,7 @@ func updateIfNEP5(c *models.ContractState) {
 		manifestStr := strings.ToLower(string(manifest))
 		if strings.Contains(manifestStr, "nep-5") ||
 			strings.Contains(manifestStr, "nep5") {
-			asset.UpdateNEP5Asset(&models.Asset{
+			nep5 := &models.Asset{
 				BlockIndex:  c.BlockIndex,
 				BlockTime:   c.BlockTime,
 				Contract:    c.Hash,
@@ -77,7 +77,10 @@ func updateIfNEP5(c *models.ContractState) {
 				Decimals:    c.Decimals,
 				Type:        "nep5",
 				TotalSupply: c.TotalSupply,
-			})
+			}
+
+			asset.UpdateNEP5Asset(nep5)
+			db.InsertNewAsset(nep5)
 		}
 	}
 }

@@ -111,39 +111,39 @@ CREATE TABLE IF NOT EXISTS `applicationlog_notification`
 
 CREATE TABLE IF NOT EXISTS `transfer`
 (
-    `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `block_index`    INT UNSIGNED  NOT NULL,
-    `block_time`  BIGINT UNSIGNED  NOT NULL,
-    `txid`               CHAR(66)  NOT NULL,
-    `src`                 CHAR(5)  NOT NULL,
-    `contract`           CHAR(42)  NOT NULL,
-    `from`               CHAR(34)  NOT NULL,
-    `to`                 CHAR(34)  NOT NULL,
-    `amount`       DECIMAL(35, 8)  NOT NULL
+    `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `block_index`     INT UNSIGNED  NOT NULL,
+    `block_time`   BIGINT UNSIGNED  NOT NULL,
+    `txid`                CHAR(66)  NOT NULL,
+    `src`                  CHAR(5)  NOT NULL,
+    `contract`            CHAR(42)  NOT NULL,
+    `from`                CHAR(34)  NOT NULL,
+    `to`                  CHAR(34)  NOT NULL,
+    `amount`       DECIMAL(35, 32)  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
 CREATE TABLE IF NOT EXISTS `addr_asset`
 (
-    `id`         INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `contract`       CHAR(42)  NOT NULL,
-    `address`        CHAR(34)  NOT NULL,
-    `balance`  DECIMAL(35, 8)  NOT NULL,
-    `transfers`  INT UNSIGNED  NOT NULL
+    `id`          INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `contract`        CHAR(42)  NOT NULL,
+    `address`         CHAR(34)  NOT NULL,
+    `balance`  DECIMAL(35, 32)  NOT NULL,
+    `transfers`   INT UNSIGNED  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
 CREATE TABLE IF NOT EXISTS `asset`
 (
-    `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `block_index`     INT UNSIGNED  NOT NULL,
-    `block_time`   BIGINT UNSIGNED  NOT NULL,
-    `contract`            CHAR(42)  NOT NULL,
-    `name`             VARCHAR(64)  NOT NULL,
-    `symbol`           VARCHAR(32)  NOT NULL,
-    `decimals`    TINYINT UNSIGNED  NOT NULL,
-    `type`             VARCHAR(16)  NOT NULL,
-    `total_supply`  DECIMAL(35, 8)  NOT NULL
+    `id`               INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `block_index`      INT UNSIGNED  NOT NULL,
+    `block_time`    BIGINT UNSIGNED  NOT NULL,
+    `contract`             CHAR(42)  NOT NULL,
+    `name`              VARCHAR(64)  NOT NULL,
+    `symbol`            VARCHAR(32)  NOT NULL,
+    `decimals`     TINYINT UNSIGNED  NOT NULL,
+    `type`              VARCHAR(16)  NOT NULL,
+    `total_supply`  DECIMAL(35, 32)  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
@@ -174,17 +174,17 @@ CREATE TABLE IF NOT EXISTS `contract`
 
 CREATE TABLE IF NOT EXISTS `contract_state`
 (
-    `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `block_index`     INT UNSIGNED  NOT NULL,
-    `block_time`   BIGINT UNSIGNED  NOT NULL,
-    `txid`                CHAR(66)  NOT NULL,
-    `state`               CHAR(16)  NOT NULL,
-    `contract_id`              INT  NOT NULL,
-    `hash`                CHAR(42)  NOT NULL,
-    `name`             VARCHAR(64)  NOT NULL,
-    `symbol`           VARCHAR(32)  NOT NULL,
-    `decimals`    TINYINT UNSIGNED  NOT NULL,
-    `total_supply`  DECIMAL(35, 8)  NOT NULL,
-    `script`            MEDIUMTEXT  NOT NULL,
-    `manifest`                JSON  NOT NULL
+    `id`               INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `block_index`      INT UNSIGNED  NOT NULL,
+    `block_time`    BIGINT UNSIGNED  NOT NULL,
+    `txid`                 CHAR(66)  NOT NULL,
+    `state`                CHAR(16)  NOT NULL,
+    `contract_id`               INT  NOT NULL,
+    `hash`                 CHAR(42)  NOT NULL,
+    `name`              VARCHAR(64)  NOT NULL,
+    `symbol`            VARCHAR(32)  NOT NULL,
+    `decimals`     TINYINT UNSIGNED  NOT NULL,
+    `total_supply`  DECIMAL(35, 32)  NOT NULL,
+    `script`             MEDIUMTEXT  NOT NULL,
+    `manifest`                 JSON  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
