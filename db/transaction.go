@@ -27,9 +27,12 @@ var txColumns = []string{
 // GetLastTxForApplicationLogTask returns the last
 // transaction of the inserted application log record.
 func GetLastTxForApplicationLogTask() *models.Transaction {
+	// To match transaction record rahter than block record,
+	// trigger must be set to Application.
 	subQuery := []string{
 		"SELECT `txid`",
 		"FROM `applicationlog`",
+		"WHERE `trigger` = 'Application'",
 		"ORDER BY `id` DESC",
 		"LIMIT 1",
 	}

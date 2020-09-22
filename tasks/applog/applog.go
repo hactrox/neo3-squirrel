@@ -93,6 +93,7 @@ func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *preAppLog, appLog
 		// and waiting for the applog query result.
 		for _, tx := range txs {
 			if tx.BlockIndex >= nextBlockIndex {
+				nextBlockIndex = tx.BlockIndex + 1
 				block, ok := block.GetBlock(tx.BlockIndex)
 				if !ok {
 					block = db.GetBlock(tx.BlockIndex)
@@ -106,8 +107,8 @@ func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *preAppLog, appLog
 					Hash:       block.Hash,
 				}
 				queryResult = append(queryResult, &appLogResult{
-					BlockIndex:        tx.BlockIndex,
-					BlockTime:         tx.BlockTime,
+					BlockIndex:        block.Index,
+					BlockTime:         block.Time,
 					Hash:              block.Hash,
 					appLogQueryResult: nil,
 				})
@@ -130,13 +131,21 @@ func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *preAppLog, appLog
 		nextTxPK = txs[len(txs)-1].ID + 1
 
 		for i := 0; i < len(queryResult); i++ {
+			retry := 0
+
 			for {
 				re := queryResult[i]
+
+				// 30 seconds.
+				if retry > 3000 {
+					log.Panicf("Failed to get applog of %s(index=%d, time=%d)", re.Hash, re.BlockIndex, re.BlockTime)
+				}
 
 				// Get applicationlog from
 				result, ok := appLogs.Load(re.Hash)
 				if !ok {
-					time.Sleep(1000 * time.Millisecond)
+					retry++
+					time.Sleep(10 * time.Millisecond)
 					continue
 				}
 
