@@ -1,6 +1,7 @@
 package contract
 
 import (
+	"neo3-squirrel/cache/asset"
 	"neo3-squirrel/cache/contractstate"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
@@ -50,6 +51,19 @@ func fetchContractStates(fromBlockIndex uint) {
 
 				// Reset list.
 				list = []*models.ContractState{}
+
+				nep5 := &models.Asset{
+					BlockIndex:  cs.BlockIndex,
+					BlockTime:   cs.BlockTime,
+					Contract:    cs.Hash,
+					Name:        cs.Name,
+					Symbol:      cs.Symbol,
+					Decimals:    cs.Decimals,
+					Type:        "nep5",
+					TotalSupply: cs.TotalSupply,
+				}
+
+				asset.UpdateNEP5Asset(nep5)
 			}
 		}
 

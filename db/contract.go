@@ -81,6 +81,72 @@ func GetLastContractStateRecord() *models.ContractState {
 	return &m
 }
 
+// GetAllContractStatesGroupedByBlockIndex returns all
+// contract states from db grouped by block index.
+func GetAllContractStatesGroupedByBlockIndex() [][]*models.ContractState {
+	query := []string{
+		fmt.Sprintf("SELECT %s", strings.Join(contractStateColumns, ", ")),
+		"FROM `contract_state`",
+		"ORDER BY `block_index` ASC, `id` ASC",
+	}
+
+	csList := []*models.ContractState{}
+	rows, err := mysql.Query(mysql.Compose(query))
+	if err != nil {
+		log.Error(mysql.Compose(query))
+		log.Panic(err)
+	}
+
+	for rows.Next() {
+		var m models.ContractState
+		var totalSupplyStr string
+
+		err := rows.Scan(
+			&m.ID,
+			&m.BlockIndex,
+			&m.BlockTime,
+			&m.TxID,
+			&m.State,
+			&m.ContractID,
+			&m.Hash,
+			&m.Name,
+			&m.Symbol,
+			&m.Decimals,
+			&totalSupplyStr,
+			&m.Script,
+			&m.Manifest,
+		)
+
+		if err != nil {
+			log.Error(mysql.Compose(query))
+			log.Panic(err)
+		}
+
+		m.TotalSupply = convert.ToDecimal(totalSupplyStr)
+		csList = append(csList, &m)
+	}
+
+	len := len(csList)
+	if len == 0 {
+		return nil
+	}
+
+	groupedIndex := 0
+	grouped := [][]*models.ContractState{{}}
+
+	// Grouped by block index.
+	for i := 0; i < len; i++ {
+		cs := csList[i]
+		grouped[groupedIndex] = append(grouped[groupedIndex], cs)
+		if i+1 >= len || csList[i+1].BlockIndex != cs.BlockIndex {
+			groupedIndex++
+			grouped = append(grouped, []*models.ContractState{})
+		}
+	}
+
+	return grouped
+}
+
 // HandleContractStates inserts new contract into DB.
 func HandleContractStates(contracts, added, deleted []*models.ContractState, migrated map[*models.ContractState]*models.ContractState) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
@@ -96,6 +162,10 @@ func HandleContractStates(contracts, added, deleted []*models.ContractState, mig
 }
 
 func insertContracStates(sqlTx *sql.Tx, contracts []*models.ContractState) error {
+	if len(contracts) == 0 {
+		return nil
+	}
+
 	strBuilder := strings.Builder{}
 	strBuilder.WriteString(fmt.Sprintf("INSERT INTO `contract_state` (%s)", strings.Join(contractStateColumns[1:], ", ")))
 

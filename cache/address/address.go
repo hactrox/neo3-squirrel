@@ -39,7 +39,7 @@ func Cache(address string, blockTime uint64) bool {
 	return false
 }
 
-// Init loads all addr info into cache.
+// Init loads all addr info from db to cache.
 func Init(array []*models.AddressInfo) {
 	mutex.Lock()
 	defer mutex.Unlock()

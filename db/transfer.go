@@ -83,6 +83,10 @@ func PersistNEP5Balances(addrAssets []*models.AddrAsset) {
 }
 
 func insertNEP5Transfer(sqlTx *sql.Tx, transfers []*models.Transfer) error {
+	if len(transfers) == 0 {
+		return nil
+	}
+
 	var strBuilder strings.Builder
 	strBuilder.WriteString(fmt.Sprintf("INSERT INTO `transfer` (%s)", strings.Join(transferColumns[1:], ", ")))
 
@@ -117,6 +121,10 @@ func insertNEP5Transfer(sqlTx *sql.Tx, transfers []*models.Transfer) error {
 }
 
 func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
+	if len(addrAssets) == 0 {
+		return nil
+	}
+
 	// Sort addresses to avoid potential sql dead lock.
 	sort.Slice(addrAssets, func(i, j int) bool {
 		addrI := addrAssets[i].Address
@@ -174,6 +182,9 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 		sql += insertsStrBuilder.String()[2:] + ";"
 	}
 	sql += updatesStrBuilder.String()
+	if len(sql) == 0 {
+		return nil
+	}
 
 	_, err := sqlTx.Exec(sql)
 	if err != nil {
@@ -215,6 +226,10 @@ func getNEP5AddrAssetRecord(sqlTx *sql.Tx, address, contract string) (*models.Ad
 }
 
 func updateContractTotalSupply(sqlTx *sql.Tx, contract string, totalSupply *big.Float) error {
+	if totalSupply == nil {
+		log.Panic("total supply cannot be nil")
+	}
+
 	query := []string{
 		"UPDATE `asset`",
 		fmt.Sprintf("SET `total_supply` = %s", convert.BigFloatToString(totalSupply)),
@@ -232,6 +247,10 @@ func updateContractTotalSupply(sqlTx *sql.Tx, contract string, totalSupply *big.
 }
 
 func updateCommitteeGASBalances(sqlTx *sql.Tx, committeeBalances map[string]*big.Float) error {
+	if len(committeeBalances) == 0 {
+		return nil
+	}
+
 	var sqlBuilder strings.Builder
 
 	for addr, gasBalance := range committeeBalances {

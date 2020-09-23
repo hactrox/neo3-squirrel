@@ -166,7 +166,7 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 			return nil
 		}
 
-		// log.Debugf("Name=%s, Symbol=%s, Decimals=%v, TotalSupply=%v", name, symbol, decimals, totalSupply)
+		// log.Debugf("Name=%s, Symbol=%s, Decimals=%v, TotalSupply=%v", nep5.Name, nep5.Symbol, decimals, nep5.TotalSupply)
 		db.InsertNewAsset(nep5)
 
 		asset.UpdateNEP5Asset(nep5)
