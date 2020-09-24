@@ -3,8 +3,8 @@ package contractstate
 import (
 	"container/list"
 	"fmt"
-	"log"
 	"neo3-squirrel/models"
+	"neo3-squirrel/util/log"
 	"sync"
 )
 
