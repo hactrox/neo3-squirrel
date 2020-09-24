@@ -234,6 +234,10 @@ func updateContracts(sqlTx *sql.Tx, added, deleted []*models.ContractState, migr
 		if err := migrateAddrAssets(sqlTx, migrated); err != nil {
 			return err
 		}
+
+		if err := deleteObseletedTransfers(sqlTx, migrated); err != nil {
+			return err
+		}
 	}
 
 	return nil
@@ -376,6 +380,29 @@ func migrateAddrAssets(sqlTx *sql.Tx, migrates map[*models.ContractState]*models
 
 	query := strBuilder.String()
 	_, err := sqlTx.Exec(query)
+	if err != nil {
+		log.Error(err)
+	}
+
+	return err
+}
+
+func deleteObseletedTransfers(sqlTx *sql.Tx, migrates map[*models.ContractState]*models.ContractState) error {
+	if len(migrates) == 0 {
+		return nil
+	}
+
+	var hashes []string
+	for _, old := range migrates {
+		hashes = append(hashes, fmt.Sprintf("'%s'", old.Hash))
+	}
+
+	query := []string{
+		"DELETE FROM `transfer`",
+		fmt.Sprintf("WHERE `contract` IN (%s)", strings.Join(hashes, ", ")),
+	}
+
+	_, err := sqlTx.Exec(mysql.Compose(query))
 	if err != nil {
 		log.Error(err)
 	}
