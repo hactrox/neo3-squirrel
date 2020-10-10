@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"math/big"
 	"neo3-squirrel/models"
+	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
 	"strconv"
 )
@@ -52,7 +53,12 @@ func extractValue(stackItem models.StackItem) (*big.Float, bool) {
 
 	switch typ {
 	case "Boolean":
-		return big.NewFloat(0), true
+		boolVal := value.(bool)
+		if boolVal {
+			return convert.BigFloatFromInt64(1), true
+		}
+
+		return convert.BigFloatFromInt64(0), true
 	case "Integer":
 		valStr := value.(string)
 		val, err := strconv.ParseInt(valStr, 10, 64)
@@ -60,7 +66,8 @@ func extractValue(stackItem models.StackItem) (*big.Float, bool) {
 			log.Error("Failed to extract value(%v) of 'Integer' type", value)
 			return nil, false
 		}
-		return new(big.Float).SetInt64(val), true
+
+		return convert.BigFloatFromInt64(val), true
 	default:
 		return nil, false
 	}
