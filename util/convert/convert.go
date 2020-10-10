@@ -10,6 +10,9 @@ import (
 
 const decimalPrecision = 256
 
+// Zero returns zero value of *big.Float.
+var Zero = newBigFloat()
+
 // UInt64sToList converts uint64 array to string.
 func UInt64sToList(ids []uint64) string {
 	return intsToList(fmt.Sprint(ids))
@@ -23,21 +26,26 @@ func UInt16sToList(ids []uint16) string {
 // DecimalNeg returns val with its sign negated.
 func DecimalNeg(val *big.Float) *big.Float {
 	val = val.SetPrec(decimalPrecision)
-	return new(big.Float).Neg(val)
+	return newBigFloat().Neg(val)
 }
 
 // ToDecimal returns *big.Float format of given decimal string,
 // will return nil if input string is empty.
 func ToDecimal(valueStr string) *big.Float {
-	value, _ := new(big.Float).SetPrec(decimalPrecision).SetString(valueStr)
+	value, _ := newBigFloat().SetString(valueStr)
 	return value
+}
+
+// BigFloatFromInt64 creates new *big.Float and sets the given value.
+func BigFloatFromInt64(val int64) *big.Float {
+	return new(big.Float).SetInt64(val)
 }
 
 // AmountReadable returns decimals-formatted amount.
 // E.g., 100000000 unit of GAS with 8 decimals will return 1.
 func AmountReadable(amount *big.Float, decimals uint) *big.Float {
 	decimalsFactor := big.NewFloat(math.Pow10(int(decimals)))
-	readableAmount := new(big.Float).SetPrec(decimalPrecision).Quo(amount, decimalsFactor)
+	readableAmount := newBigFloat().Quo(amount, decimalsFactor)
 
 	return readableAmount
 }
@@ -58,7 +66,7 @@ func BigFloatToString(value *big.Float) string {
 // BytesToBigFloat converts byte array to *big.Float.
 func BytesToBigFloat(data []byte) *big.Float {
 	dataRev := ReverseBytes(data)
-	val := new(big.Float).SetPrec(decimalPrecision).SetInt(new(big.Int).SetBytes(dataRev))
+	val := newBigFloat().SetInt(new(big.Int).SetBytes(dataRev))
 	return val
 }
 
@@ -106,11 +114,15 @@ func ParseAmountStr(amountStr string) (*big.Float, int, bool) {
 		decimals = len(amountStr) - 1 - dotIndex
 	}
 
-	amount, ok := new(big.Float).SetPrec(decimalPrecision).SetString(amountStr)
+	amount, ok := newBigFloat().SetString(amountStr)
 
 	return amount, decimals, ok
 }
 
 func intsToList(str string) string {
 	return strings.Trim(strings.Replace(str, " ", ",", -1), "[]")
+}
+
+func newBigFloat() *big.Float {
+	return new(big.Float).SetPrec(decimalPrecision)
 }
