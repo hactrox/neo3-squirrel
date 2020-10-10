@@ -2,10 +2,10 @@ package applog
 
 import (
 	"encoding/json"
-	"math/big"
 	"neo3-squirrel/cache/asset"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
+	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
 	"strings"
 )
@@ -27,7 +27,7 @@ func handleContractStateChange(csList []*models.ContractState) {
 		cs := csList[i]
 		// log.Debugf(cs.Hash)
 		if cs.TotalSupply == nil {
-			cs.TotalSupply = big.NewFloat(0)
+			cs.TotalSupply = convert.Zero
 		}
 
 		contractStates = append(contractStates, cs)
