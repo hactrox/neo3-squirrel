@@ -18,10 +18,10 @@ var addressInfoColumn = []string{
 	"`transfers`",
 }
 
-// GetAllAddressInfo returns all address info from DB.
-func GetAllAddressInfo() []*models.AddressInfo {
+// GetAllAddressInfo returns all addresses from DB.
+func GetAllAddressInfo() []string {
 	query := []string{
-		fmt.Sprintf("SELECT %s", strings.Join(addressInfoColumn, ", ")),
+		"SELECT `address`",
 		"FROM `address`",
 	}
 
@@ -32,28 +32,21 @@ func GetAllAddressInfo() []*models.AddressInfo {
 	}
 
 	defer rows.Close()
-	addrInfo := []*models.AddressInfo{}
+	addresses := []string{}
 
 	for rows.Next() {
-		var m models.AddressInfo
-
-		err := rows.Scan(
-			&m.ID,
-			&m.Address,
-			&m.FirstTxTime,
-			&m.LastTxTime,
-			&m.Transfers,
-		)
+		var addr string
+		err := rows.Scan(&addr)
 
 		if err != nil {
 			log.Error(mysql.Compose(query))
 			log.Panic(err)
 		}
 
-		addrInfo = append(addrInfo, &m)
+		addresses = append(addresses, addr)
 	}
 
-	return addrInfo
+	return addresses
 }
 
 func updateAddressInfo(sqlTx *sql.Tx, delta map[string]*models.AddressInfo) error {

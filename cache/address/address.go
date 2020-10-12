@@ -2,55 +2,43 @@ package address
 
 import (
 	"fmt"
-	"neo3-squirrel/models"
 	"neo3-squirrel/util/log"
 	"sync"
 )
 
 var (
-	// map[address]*models.AddressInfo{}
-	addrInfoMap = map[string]*models.AddressInfo{}
-	mutex       sync.Mutex
+	// map[address]bool
+	addrMap = map[string]bool{}
+	mutex   sync.Mutex
 )
 
-// Cache caches address basic info.
-func Cache(address string, blockTime uint64) bool {
+// Cache caches the given address and returns `false` if this
+// address has already been cached.
+func Cache(address string) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	addrInfo, ok := addrInfoMap[address]
+	_, ok := addrMap[address]
 	if !ok {
-		addrInfoMap[address] = &models.AddressInfo{
-			Address:     address,
-			FirstTxTime: blockTime,
-			LastTxTime:  blockTime,
-			Transfers:   1,
-		}
-
+		addrMap[address] = true
 		return true
 	}
-
-	if blockTime > addrInfo.LastTxTime {
-		addrInfo.LastTxTime = blockTime
-	}
-
-	addrInfo.Transfers++
 
 	return false
 }
 
-// Init loads all addr info from db to cache.
-func Init(array []*models.AddressInfo) {
+// Init loads all addresses from db to cache.
+func Init(addresses []string) {
 	mutex.Lock()
 	defer mutex.Unlock()
 
-	size := len(addrInfoMap)
+	size := len(addrMap)
 	if size > 0 {
-		err := fmt.Errorf("address info cache can only be loaded once. Current cache size: %d", size)
+		err := fmt.Errorf("address cache can only be loaded once. Current cache size: %d", size)
 		log.Panic(err)
 	}
 
-	for _, addrInfo := range array {
-		addrInfoMap[addrInfo.Address] = addrInfo
+	for _, addr := range addresses {
+		addrMap[addr] = true
 	}
 }

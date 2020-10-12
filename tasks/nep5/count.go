@@ -22,7 +22,7 @@ func countAddressTransfers(transfers []*models.Transfer) map[string]*models.Addr
 		}
 
 		for addr := range addresses {
-			created := address.Cache(addr, blockTime)
+			created := address.Cache(addr)
 			if created {
 				addrInfoUpdates[addr] = &models.AddressInfo{
 					Address:     addr,
