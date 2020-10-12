@@ -6,9 +6,8 @@ import (
 )
 
 var (
-	// nep5Assets stores all NEP5 asset info.
-	nep5Assets = map[string]*models.Asset{}
-	mu         sync.RWMutex
+	nep5AssetMap = map[string]*models.Asset{}
+	mu           sync.RWMutex
 )
 
 // UpdateNEP5Asset adds or updates NEP5 asset cache.
@@ -16,7 +15,7 @@ func UpdateNEP5Asset(asset *models.Asset) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	nep5Assets[asset.Contract] = asset
+	nep5AssetMap[asset.Contract] = asset
 }
 
 // UpdateNEP5Assets adds or updates NEP5 asset caches.
@@ -25,7 +24,7 @@ func UpdateNEP5Assets(assets []*models.Asset) {
 	defer mu.Unlock()
 
 	for _, asset := range assets {
-		nep5Assets[asset.Contract] = asset
+		nep5AssetMap[asset.Contract] = asset
 	}
 }
 
@@ -34,7 +33,7 @@ func GetNEP5(contract string) (*models.Asset, bool) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	nep5, ok := nep5Assets[contract]
+	nep5, ok := nep5AssetMap[contract]
 	return nep5, ok
 }
 
@@ -43,7 +42,7 @@ func GetNEP5Decimals(contract string) (uint, bool) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	nep5, ok := nep5Assets[contract]
+	nep5, ok := nep5AssetMap[contract]
 	if !ok {
 		return 0, false
 	}
@@ -56,7 +55,7 @@ func GetNEP5Symbol(contract string) (string, bool) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	nep5, ok := nep5Assets[contract]
+	nep5, ok := nep5AssetMap[contract]
 	if !ok {
 		return "", false
 	}
