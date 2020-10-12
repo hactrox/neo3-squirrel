@@ -9,25 +9,28 @@ import (
 const maxCachedBlocks = 50000
 
 var (
-	blockIndexQueue  = list.New()
-	lastBlocks       = map[uint]*models.Block{}
-	lastTransactions = map[string]*models.Transaction{}
+	blockIndexQueue = list.New()
+	blockMap        = map[uint]*models.Block{}
+	transactionMap  = map[string]*models.Transaction{}
 
-	mutex    sync.Mutex
+	mu sync.Mutex
+
+	// bulkMode prevents double mutex lock
+	// when caches blocks at once.
 	bulkMode bool
 )
 
 // CacheBlocks caches blocks and transactions in these blocks.
 func CacheBlocks(blocks []*models.Block) {
-	mutex.Lock()
+	mu.Lock()
+	defer mu.Unlock()
+
 	bulkMode = true
-	defer mutex.Unlock()
+	defer func() { bulkMode = false }()
 
 	for _, block := range blocks {
 		CacheBlock(block)
 	}
-
-	bulkMode = false
 }
 
 // CacheBlock caches a single block and its transactoins.
@@ -39,72 +42,54 @@ func CacheBlock(block *models.Block) {
 	}
 
 	if !bulkMode {
-		mutex.Lock()
-		defer mutex.Unlock()
+		mu.Lock()
+		defer mu.Unlock()
 	}
 
-	if _, exists := lastBlocks[block.Index]; exists {
+	if _, exists := blockMap[block.Index]; exists {
 		return
 	}
 
 	blockIndexQueue.PushBack(block.Index)
-	lastBlocks[block.Index] = block
+	blockMap[block.Index] = block
 	for _, tx := range block.GetTxs() {
-		lastTransactions[tx.Hash] = tx
+		transactionMap[tx.Hash] = tx
 	}
 
+	// Remove oldest cached block if exceed the maximum limitation.
 	if blockIndexQueue.Len() > maxCachedBlocks {
 		firstElem := blockIndexQueue.Front()
 		blockIndexToRemove := firstElem.Value.(uint)
 
 		blockIndexQueue.Remove(firstElem)
 
-		blockToRemove, ok := lastBlocks[blockIndexToRemove]
+		blockToRemove, ok := blockMap[blockIndexToRemove]
 		if !ok {
 			return
 		}
 
 		for _, tx := range blockToRemove.GetTxs() {
-			delete(lastTransactions, tx.Hash)
+			delete(transactionMap, tx.Hash)
 		}
 
-		delete(lastBlocks, blockIndexToRemove)
+		delete(blockMap, blockIndexToRemove)
 	}
 }
 
 // GetBlock returns the block of the given index if cached.
 func GetBlock(blockIndex uint) (*models.Block, bool) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
-	block, ok := lastBlocks[blockIndex]
+	block, ok := blockMap[blockIndex]
 	return block, ok
-}
-
-// GetBlockHashes returns block hashes which indexes in range [startBlockIndex, endBlockIndex].
-func GetBlockHashes(startBlockIndex, endBlockIndex uint) ([]string, bool) {
-	mutex.Lock()
-	defer mutex.Unlock()
-
-	hashes := []string{}
-
-	for index := startBlockIndex; index <= endBlockIndex; index++ {
-		block, ok := lastBlocks[index]
-		if !ok {
-			return nil, false
-		}
-
-		hashes = append(hashes, block.Hash)
-	}
-
-	return hashes, true
 }
 
 // GetTransaction returns the transaction if the given hash if cached.
 func GetTransaction(txID string) (*models.Transaction, bool) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
-	tx, ok := lastTransactions[txID]
+	tx, ok := transactionMap[txID]
 	return tx, ok
 }
