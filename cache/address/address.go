@@ -12,8 +12,8 @@ var (
 	mutex   sync.Mutex
 )
 
-// Cache caches the given address and returns `false` if this
-// address has already been cached.
+// Cache caches the given address.
+// Returns `true` if the address has not been cached yet.
 func Cache(address string) bool {
 	mutex.Lock()
 	defer mutex.Unlock()
