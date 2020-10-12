@@ -9,14 +9,14 @@ import (
 var (
 	// map[address]bool
 	addrMap = map[string]bool{}
-	mutex   sync.Mutex
+	mu      sync.Mutex
 )
 
 // Cache caches the given address.
 // Returns `true` if the address has not been cached yet.
 func Cache(address string) bool {
-	mutex.Lock()
-	defer mutex.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
 	_, ok := addrMap[address]
 	if !ok {
@@ -29,8 +29,8 @@ func Cache(address string) bool {
 
 // Init loads all addresses from db to cache.
 func Init(addresses []string) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
 	size := len(addrMap)
 	if size > 0 {
