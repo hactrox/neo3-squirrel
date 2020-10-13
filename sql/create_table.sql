@@ -140,10 +140,10 @@ CREATE TABLE IF NOT EXISTS `asset`
     `block_index`      INT UNSIGNED  NOT NULL,
     `block_time`    BIGINT UNSIGNED  NOT NULL,
     `contract`             CHAR(42)  NOT NULL,
+    `type`              VARCHAR(16)  NOT NULL,
     `name`              VARCHAR(64)  NOT NULL,
     `symbol`            VARCHAR(32)  NOT NULL,
     `decimals`     TINYINT UNSIGNED  NOT NULL,
-    `type`              VARCHAR(16)  NOT NULL,
     `total_supply`  DECIMAL(65, 30)  NOT NULL,
     `destroyed`             BOOLEAN  NOT NULL DEFAULT FALSE
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';

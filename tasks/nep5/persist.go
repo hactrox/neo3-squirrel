@@ -44,7 +44,6 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 	slept := false
 
 	addrTransferCntDelta := countAddressTransfers(txTransfers.transfers)
-	committeeGASBalances := getCommitteeGASBalances(txTransfers.transfers)
 
 	for _, transfer := range txTransfers.transfers {
 		minBlockIndex := transfer.BlockIndex
@@ -97,8 +96,7 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 			txTransfers.transfers,
 			addrAssets,
 			addrTransferCntDelta,
-			newGASTotalSupply,
-			committeeGASBalances)
+			newGASTotalSupply)
 		showTransfers(txTransfers.transfers)
 	}
 }

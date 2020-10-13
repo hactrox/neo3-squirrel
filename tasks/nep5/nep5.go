@@ -31,10 +31,6 @@ type notiTransfer struct {
 
 // StartNEP5TransferSyncTask starts NEP5 transfer related tasks.
 func StartNEP5TransferSyncTask() {
-	// Load all known assets from DB.
-	assets := db.GetAllAssets("nep5")
-	asset.UpdateNEP5Assets(assets)
-
 	lastTransferNoti := db.GetLastNotiForNEP5Task()
 	upToBlockHeight := uint(0)
 	upToBlockTime := ""

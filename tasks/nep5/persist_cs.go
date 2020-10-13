@@ -1,13 +1,10 @@
 package nep5
 
 import (
-	"encoding/json"
-	"neo3-squirrel/cache/asset"
 	"neo3-squirrel/cache/contractstate"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
 	"neo3-squirrel/util/log"
-	"strings"
 )
 
 func handleContractStateChange(minBlockIndex uint) {
@@ -29,7 +26,6 @@ func handleContractStateChange(minBlockIndex uint) {
 
 		switch cs.State {
 		case models.CSTrackStateAdded:
-			updateIfNEP5(cs)
 			added = append(added, cs)
 		case models.CSTrackStateUpdated:
 			// Passed.
@@ -49,31 +45,4 @@ func handleContractStateChange(minBlockIndex uint) {
 	}
 
 	db.HandleContractStates(contractStates, added, deleted, migrated)
-}
-
-func updateIfNEP5(c *models.ContractState) {
-	if c.Name != "" && c.Symbol != "" {
-		manifest, err := json.Marshal(c.Manifest)
-		if err != nil {
-			log.Panic(err)
-		}
-
-		manifestStr := strings.ToLower(string(manifest))
-		if strings.Contains(manifestStr, "nep-5") ||
-			strings.Contains(manifestStr, "nep5") {
-			nep5 := &models.Asset{
-				BlockIndex:  c.BlockIndex,
-				BlockTime:   c.BlockTime,
-				Contract:    c.Hash,
-				Name:        c.Name,
-				Symbol:      c.Symbol,
-				Decimals:    c.Decimals,
-				Type:        "nep5",
-				TotalSupply: c.TotalSupply,
-			}
-
-			asset.UpdateNEP5Asset(nep5)
-			db.InsertNewAsset(nep5)
-		}
-	}
 }

@@ -7,6 +7,7 @@ import (
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
 	"sort"
+	"strings"
 	"time"
 )
 
@@ -28,7 +29,7 @@ func fetchContractStates(fromBlockIndex uint) {
 		contractStates := rpc.GetContractStates(fromBlockIndex, batches)
 		l := len(contractStates)
 		if l == 0 {
-			time.Sleep(3 * time.Second)
+			time.Sleep(1 * time.Second)
 			continue
 		}
 
@@ -44,30 +45,47 @@ func fetchContractStates(fromBlockIndex uint) {
 
 		// Split by block index.
 		for i := 0; i < l; i++ {
-			cs := contractStates[i]
-			list = append(list, models.ParseContractState(cs))
+			cs := models.ParseContractState(contractStates[i])
+
+			if cs.State == models.CSTrackStateAdded {
+				updateIfNEP5(cs)
+			}
+
+			list = append(list, cs)
 			if i+1 >= l || contractStates[i+1].BlockIndex != cs.BlockIndex {
 				contractstate.AddContractState(list)
 
 				// Reset list.
 				list = []*models.ContractState{}
-
-				nep5 := &models.Asset{
-					BlockIndex:  cs.BlockIndex,
-					BlockTime:   cs.BlockTime,
-					Contract:    cs.Hash,
-					Name:        cs.Name,
-					Symbol:      cs.Symbol,
-					Decimals:    cs.Decimals,
-					Type:        "nep5",
-					TotalSupply: cs.TotalSupply,
-				}
-
-				asset.UpdateNEP5Asset(nep5)
 			}
 		}
 
 		fromBlockIndex = contractStates[l-1].BlockIndex + 1
 		time.Sleep(100 * time.Millisecond)
+	}
+}
+
+func updateIfNEP5(c *models.ContractState) {
+	if c.Name == "" || c.Symbol == "" || len(c.Manifest) == 0 {
+		return
+	}
+
+	manifestStr := strings.ToLower(string(c.Manifest))
+
+	if strings.Contains(manifestStr, "nep-5") ||
+		strings.Contains(manifestStr, "nep5") {
+		nep5 := &models.Asset{
+			BlockIndex:  c.BlockIndex,
+			BlockTime:   c.BlockTime,
+			Contract:    c.Hash,
+			Name:        c.Name,
+			Symbol:      c.Symbol,
+			Decimals:    c.Decimals,
+			Type:        "nep5",
+			TotalSupply: c.TotalSupply,
+		}
+
+		asset.UpdateNEP5Asset(nep5)
+		db.InsertNewAsset(nep5)
 	}
 }

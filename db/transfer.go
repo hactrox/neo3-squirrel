@@ -36,8 +36,7 @@ var addrAssetColumns = []string{
 func InsertNEP5Transfers(transfers []*models.Transfer,
 	addrAssets []*models.AddrAsset,
 	addrTransferCntDelta map[string]*models.AddressInfo,
-	newGASTotalSupply *big.Float,
-	committeeGASBalances map[string]*big.Float) {
+	newGASTotalSupply *big.Float) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
 		// Insert NEP5 transfers.
 		if err := insertNEP5Transfer(sqlTx, transfers); err != nil {
@@ -59,13 +58,6 @@ func InsertNEP5Transfers(transfers []*models.Transfer,
 		// Update GAS total supply if it changed.
 		if newGASTotalSupply != nil {
 			if err := updateContractTotalSupply(sqlTx, models.GAS, newGASTotalSupply); err != nil {
-				return err
-			}
-		}
-
-		// Update committee balances.
-		if len(committeeGASBalances) > 0 {
-			if err := updateCommitteeGASBalances(sqlTx, committeeGASBalances); err != nil {
 				return err
 			}
 		}
@@ -238,33 +230,6 @@ func updateContractTotalSupply(sqlTx *sql.Tx, contract string, totalSupply *big.
 	}
 
 	_, err := sqlTx.Exec(mysql.Compose(query))
-	if err != nil {
-		log.Error(err)
-		return err
-	}
-
-	return nil
-}
-
-func updateCommitteeGASBalances(sqlTx *sql.Tx, committeeBalances map[string]*big.Float) error {
-	if len(committeeBalances) == 0 {
-		return nil
-	}
-
-	var sqlBuilder strings.Builder
-
-	for addr, gasBalance := range committeeBalances {
-		query := []string{
-			"UPDATE `addr_asset`",
-			fmt.Sprintf("SET `balance` = %s", convert.BigFloatToString(gasBalance)),
-			fmt.Sprintf("WHERE `contract` = '%s' AND `address` = '%s'", models.GAS, addr),
-			"LIMIT 1",
-		}
-
-		sqlBuilder.WriteString(mysql.Compose(query) + ";")
-	}
-
-	_, err := sqlTx.Exec(sqlBuilder.String())
 	if err != nil {
 		log.Error(err)
 		return err

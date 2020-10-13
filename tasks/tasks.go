@@ -2,6 +2,7 @@ package tasks
 
 import (
 	"neo3-squirrel/cache/address"
+	"neo3-squirrel/cache/asset"
 	"neo3-squirrel/db"
 	"neo3-squirrel/rpc"
 	"neo3-squirrel/tasks/applog"
@@ -16,6 +17,10 @@ func Run() {
 	log.Info("Start Neo3 blockchain data parser.")
 
 	address.Init(db.GetAllAddressInfo())
+
+	// Load all known assets from DB.
+	assets := db.GetAllAssets("nep5")
+	asset.UpdateNEP5Assets(assets)
 
 	rpc.TraceBestHeight()
 

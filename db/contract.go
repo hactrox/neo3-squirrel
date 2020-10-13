@@ -235,7 +235,7 @@ func updateContracts(sqlTx *sql.Tx, added, deleted []*models.ContractState, migr
 			return err
 		}
 
-		if err := disableObseletedAssets(sqlTx, migrated); err != nil {
+		if err := hideObseletedTransfers(sqlTx, migrated); err != nil {
 			return err
 		}
 
@@ -243,7 +243,7 @@ func updateContracts(sqlTx *sql.Tx, added, deleted []*models.ContractState, migr
 			return err
 		}
 
-		if err := hideObseletedTransfers(sqlTx, migrated); err != nil {
+		if err := disableObseletedAssets(sqlTx, migrated); err != nil {
 			return err
 		}
 	}
