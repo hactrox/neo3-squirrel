@@ -10,13 +10,6 @@ import (
 	"strings"
 )
 
-// Contract track state string literal.
-const (
-	Added   = "Added"
-	Updated = "Updated"
-	Deleted = "Deleted"
-)
-
 func handleContractStateChange(minBlockIndex uint) {
 	csList := contractstate.PopFirstIf(minBlockIndex)
 	if len(csList) == 0 {
@@ -35,14 +28,14 @@ func handleContractStateChange(minBlockIndex uint) {
 		contractStates = append(contractStates, cs)
 
 		switch cs.State {
-		case Added:
+		case models.CSTrackStateAdded:
 			updateIfNEP5(cs)
 			added = append(added, cs)
-		case Updated:
+		case models.CSTrackStateUpdated:
 			// Passed.
-		case Deleted:
+		case models.CSTrackStateDeleted:
 			// If contract migration.
-			if i-1 >= 0 && csList[i-1].TxID == cs.TxID && csList[i-1].State == Added {
+			if i-1 >= 0 && csList[i-1].TxID == cs.TxID && csList[i-1].State == models.CSTrackStateAdded {
 				newContract := csList[i-1]
 				oldContract := cs
 				migrated[newContract] = oldContract

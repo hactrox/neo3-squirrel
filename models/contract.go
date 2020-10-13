@@ -7,6 +7,16 @@ import (
 	"neo3-squirrel/util/log"
 )
 
+// ContractTrackState defines contract track states.
+type ContractTrackState string
+
+// Contract track state string literal.
+const (
+	CSTrackStateAdded   ContractTrackState = "Added"
+	CSTrackStateUpdated ContractTrackState = "Updated"
+	CSTrackStateDeleted ContractTrackState = "Deleted"
+)
+
 // ContractState db model.
 type ContractState struct {
 	ID          uint
@@ -14,7 +24,7 @@ type ContractState struct {
 	BlockTime   uint64
 	TxID        string
 	Hash        string
-	State       string
+	State       ContractTrackState
 	NewHash     string
 	ContractID  int
 	Name        string
@@ -37,7 +47,7 @@ func ParseContractState(cs *rpc.ContractState) *ContractState {
 		BlockTime:   cs.BlockTime,
 		TxID:        cs.TxID,
 		Hash:        cs.Hash,
-		State:       cs.State,
+		State:       ContractTrackState(cs.State),
 		NewHash:     "",
 		ContractID:  cs.ID,
 		Name:        cs.Name,
