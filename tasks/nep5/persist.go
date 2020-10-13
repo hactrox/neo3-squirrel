@@ -143,19 +143,23 @@ func showTransfers(transfers []*models.Transfer) {
 		if len(from) == 0 {
 			// Claim GAS.
 			if contractHash == models.GAS {
-				msg = fmt.Sprintf("GAS claimed: %s %s -> %s", amountStr, symbol, to)
+				msg = fmt.Sprintf("   GAS claimed: %s + %s %s", to, amountStr, symbol)
+				msg = color.Green(msg)
 			} else {
-				msg = fmt.Sprintf("Mint token: %s %s -> %s", amountStr, symbol, to)
+				msg = fmt.Sprintf("  Token minted: %s + %s %s", to, amountStr, symbol)
+				msg = color.LightGreen(msg)
 			}
 		} else {
 			if len(to) == 0 {
-				msg = fmt.Sprintf("Destroy token: %s destroyed %s %s", from, amountStr, symbol)
+				msg = fmt.Sprintf(" Destroy token: %s - %s %s", from, amountStr, symbol)
+				msg = color.LightPurple(msg)
 			} else {
-				msg = fmt.Sprintf("NEP5 transfer: %s -> %s, amount: %s %s", from, to, amountStr, symbol)
+				msg = fmt.Sprintf("Token transfer: %s -> %s, amount %s %s", from, to, amountStr, symbol)
+				msg = color.LightCyan(msg)
 			}
 		}
 
-		log.Info(color.BLightCyanf(msg))
+		log.Info(msg)
 	}
 }
 

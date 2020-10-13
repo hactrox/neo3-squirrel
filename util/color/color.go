@@ -133,6 +133,12 @@ func LightCyan(txt string) string {
 	return Render(lightCyan, normal, txt)
 }
 
+// LightCyanf text
+func LightCyanf(format string, a ...interface{}) string {
+	msg := fmt.Sprintf(format, a...)
+	return LightCyan(msg)
+}
+
 // White text
 func White(txt string) string {
 	return Render(white, normal, txt)
