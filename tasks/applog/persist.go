@@ -20,5 +20,6 @@ func persistApplicationLogs(appLogChan <-chan *appLogResult) {
 		appLog := models.ParseApplicationLog(blockIndex, blockTime, logResult)
 		appLog.GasConsumed = convert.AmountReadable(appLog.GasConsumed, 8)
 		db.InsertApplicationLog(appLog)
+		LastTxPK = result.PK
 	}
 }

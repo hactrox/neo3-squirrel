@@ -26,6 +26,7 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 		}
 
 		processNEP5Transfers(txTransfers)
+		LastTxPK = txTransfers.PK
 	}
 }
 
@@ -90,8 +91,7 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 	// if new GAS total supply is not nil, then the value should be updated.
 	newGASTotalSupply := updateGASTotalSupply(txTransfers.transfers)
 
-	if len(txTransfers.transfers) > 0 ||
-		len(addrAssets) > 0 {
+	if len(txTransfers.transfers) > 0 || len(addrAssets) > 0 {
 		db.InsertNEP5Transfers(
 			txTransfers.transfers,
 			addrAssets,

@@ -17,13 +17,14 @@ import (
 )
 
 var (
-	chanSize = 5000
+	chanSize = 8000
 
-	// nep5Assets loads all known NEP5 assets from DB.
-	// nep5Assets = map[string]*models.Asset{}
+	// LastTxPK if the last tx pk of persisted tx appLogs.
+	LastTxPK uint
 )
 
 type notiTransfer struct {
+	PK         uint
 	TxID       string
 	BlockIndex uint
 	transfers  []*models.Transfer
@@ -116,11 +117,12 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 		}
 
 		for _, notis := range notiArrays {
-			txID := notis[0].TxID
+			noti := notis[0]
 			blockIndex := notis[0].BlockIndex
 
 			txTransfers := notiTransfer{
-				TxID:       txID,
+				PK:         noti.ID,
+				TxID:       noti.TxID,
 				BlockIndex: blockIndex,
 			}
 
@@ -135,7 +137,7 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 				default:
 					// Detect if has address parameter, if true, check if has balance.
 					if !persistExtraAddrBalancesIfExists(noti) {
-						log.Info("Notification in tx %s not parsed. EventName=%s", txID, noti.EventName)
+						log.Info("Notification in tx %s not parsed. EventName=%s", noti.TxID, noti.EventName)
 					}
 				}
 			}

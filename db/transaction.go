@@ -44,6 +44,22 @@ func GetLastTxForApplicationLogTask() *models.Transaction {
 		"LIMIT 1",
 	}
 
+	return getTransactionQueryRow(query)
+}
+
+// GetLastTransaction returns the last transaction record.
+func GetLastTransaction() *models.Transaction {
+	query := []string{
+		fmt.Sprintf("SELECT %s", strings.Join(txColumns, ", ")),
+		"FROM `transaction`",
+		"ORDER BY `id` DESC",
+		"LIMIT 1",
+	}
+
+	return getTransactionQueryRow(query)
+}
+
+func getTransactionQueryRow(query []string) *models.Transaction {
 	var tx models.Transaction
 	var sysFee string
 	var netFee string

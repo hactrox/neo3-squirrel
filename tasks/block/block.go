@@ -8,6 +8,8 @@ import (
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
+	"neo3-squirrel/tasks/applog"
+	"neo3-squirrel/tasks/nep5"
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
@@ -31,6 +33,10 @@ var (
 func StartBlockSyncTask() {
 	lastBlockHeight := db.GetLastBlockHeight()
 	bestBlockHeight := rpc.GetBestHeight()
+
+	if lastBlockHeight == bestBlockHeight {
+		prog.Finished = true
+	}
 
 	log.Info(color.Greenf("Block sync progress: %d/%d", lastBlockHeight, bestBlockHeight),
 		color.BGreenf(", %d", bestBlockHeight-lastBlockHeight),
@@ -56,7 +62,7 @@ func fetchBlock() {
 
 	defer func() {
 		const hint = "Worker for block data persistence terminated"
-		log.Info(color.BGreenf("%s. Remaining workers=%d", hint, worker.num()))
+		log.Info(color.Greenf("%s. Remaining workers=%d", hint, worker.num()))
 	}()
 
 	// TODO: mail alert
@@ -79,7 +85,7 @@ func fetchBlock() {
 
 		// Beyond the latest block.
 		if b == nil {
-			if nextHeight > rpc.GetBestHeight()-50 &&
+			if nextHeight >= rpc.GetBestHeight() &&
 				worker.shouldQuit() {
 				return
 			}
@@ -208,25 +214,51 @@ func showBlockStorageProgress(maxIndex int64, highestIndex int64) {
 		prog.Finished = true
 	}
 
-	log.Infof("%sBlock storage progress: %d/%d, %.4f%%\n",
+	msg := fmt.Sprintf("%sBlock storage progress: %d/%d, %.4f%%",
 		prog.RemainingTimeStr,
 		maxIndex,
 		highestIndex,
-		prog.Percentage,
-	)
-	prog.LastOutputTime = now
+		prog.Percentage)
 
-	// Send mail if fully synced.
-	if prog.Finished && !prog.MailSent {
-		prog.MailSent = true
-
-		// If sync lasts shortly, do not send mail.
-		if time.Since(prog.InitTime) < time.Minute*5 {
-			return
-		}
-
-		// TODO: mail alert
-		// msg := fmt.Sprintf("Block counts: %d", highestIndex)
-		// mail.SendNotify("Block data Fully Synced", msg)
+	if prog.Finished {
+		msg += appLogSyncProgressIndicator()
+		msg += nep5SyncProgressIndicator()
 	}
+
+	log.Infof(msg)
+	prog.LastOutputTime = now
+}
+
+func appLogSyncProgressIndicator() string {
+	lastPersistedPK := applog.LastTxPK
+	LastTx := db.GetLastTransaction()
+
+	if LastTx == nil {
+		return ""
+	}
+
+	offset := LastTx.ID - lastPersistedPK
+
+	if lastPersistedPK == 0 || offset == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf(" [appLog left %d records %d/%d]", offset, lastPersistedPK, LastTx.ID)
+}
+
+func nep5SyncProgressIndicator() string {
+	lastPersistedPK := nep5.LastTxPK
+	lastNoti := db.GetLastNotiForNEP5Task()
+
+	if lastNoti == nil {
+		return ""
+	}
+
+	offset := lastNoti.ID - lastPersistedPK
+
+	if lastPersistedPK == 0 || offset == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf(" [nep5 tx left %d records  %d/%d]", offset, lastPersistedPK, lastNoti.ID)
 }

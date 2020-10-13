@@ -137,23 +137,7 @@ func getApplicatoinLogQuery(query string) *models.ApplicationLog {
 	return &appLog
 }
 
-// GetLastNotiForNEP5Task returns the last notification
-// of the NEP5 transfer record.
-func GetLastNotiForNEP5Task() *models.Notification {
-	subQuery := []string{
-		"SELECT `txid`",
-		"FROM `transfer`",
-		"ORDER BY `id` DESC",
-		"LIMIT 1",
-	}
-
-	query := []string{
-		fmt.Sprintf("SELECT %s", strings.Join(appLogNotiColumns, ", ")),
-		"FROM `applicationlog_notification`",
-		fmt.Sprintf("WHERE `txid` = (%s)", mysql.Compose(subQuery)),
-		"LIMIT 1",
-	}
-
+func getAppLogNotiQueryRow(query []string) *models.Notification {
 	var noti models.Notification
 	state := []byte{}
 
@@ -178,8 +162,27 @@ func GetLastNotiForNEP5Task() *models.Notification {
 	}
 
 	noti.UnmarshalState(state)
-
 	return &noti
+}
+
+// GetLastNotiForNEP5Task returns the last notification
+// of the NEP5 transfer record.
+func GetLastNotiForNEP5Task() *models.Notification {
+	subQuery := []string{
+		"SELECT `txid`",
+		"FROM `transfer`",
+		"ORDER BY `id` DESC",
+		"LIMIT 1",
+	}
+
+	query := []string{
+		fmt.Sprintf("SELECT %s", strings.Join(appLogNotiColumns, ", ")),
+		"FROM `applicationlog_notification`",
+		fmt.Sprintf("WHERE `txid` = (%s)", mysql.Compose(subQuery)),
+		"LIMIT 1",
+	}
+
+	return getAppLogNotiQueryRow(query)
 }
 
 // GetGroupedAppLogNotifications returns grouped notifications

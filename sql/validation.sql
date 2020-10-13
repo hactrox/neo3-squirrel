@@ -135,4 +135,32 @@ UNION ALL
 SELECT 'check address count', IF(
     (SELECT IFNULL((SELECT COUNT(`id`) FROM `address`), 0)) -
     (SELECT `addr_count` FROM `counter`) = 0
+, 'PASS', 'FAIL')
+
+UNION ALL
+
+SELECT 'check NEO & GAS transfers total amount balance', IF(
+    !EXISTS(
+        SELECT @NEO = '0xde5f57d430d3dece511cf975a8d37848cb9e0525',
+               @GAS = '0x668e0c1f9d7b70a99dd9e06eadd4c784d641afbc',
+               addr_asset.address,
+               addr_asset.contract,
+               addr_asset.balance,
+               aa.balance
+        FROM `addr_asset` JOIN (
+            SELECT `addr`, `contract`, SUM(`amount`) balance FROM (
+                SELECT `from` addr, `contract`, -SUM(amount) amount
+                FROM `transfer`
+                WHERE `from` != '' AND `contract` IN (@NEO, @GAS)
+                GROUP BY `from`, `contract`
+                UNION
+                SELECT `to` addr, `contract`, SUM(`amount`) amount
+                FROM `transfer`
+                WHERE `to` != '' AND `contract` IN (@NEO, @GAS)
+                GROUP BY `to`, `contract`
+            ) a GROUP BY addr, `contract`
+        ) aa
+        ON `addr_asset`.`address`=aa.`addr` AND `addr_asset`.`contract`=`aa`.`contract`
+        WHERE `addr_asset`.`balance` != `aa`.`balance`
+    )
 , 'PASS', 'FAIL');

@@ -17,6 +17,8 @@ const chanSize = 5000
 var (
 	// appLogs stores txID with its applocationlog rpc query result.
 	appLogs sync.Map
+	// LastTxPK if the last tx pk of persisted tx appLogs.
+	LastTxPK uint
 )
 
 type preAppLog struct {
@@ -25,6 +27,7 @@ type preAppLog struct {
 }
 
 type appLogResult struct {
+	PK                uint
 	BlockIndex        uint
 	BlockTime         uint64
 	Hash              string
@@ -119,6 +122,7 @@ func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *preAppLog, appLog
 				Hash:       tx.Hash,
 			}
 			queryResult = append(queryResult, &appLogResult{
+				PK:                tx.ID,
 				BlockIndex:        tx.BlockIndex,
 				BlockTime:         tx.BlockTime,
 				Hash:              tx.Hash,
