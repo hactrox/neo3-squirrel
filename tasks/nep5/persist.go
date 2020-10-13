@@ -9,8 +9,6 @@ import (
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
 	"neo3-squirrel/tasks/util"
-	"neo3-squirrel/util/color"
-	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
 	"time"
 )
@@ -97,6 +95,7 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 			addrAssets,
 			addrTransferCntDelta,
 			newGASTotalSupply)
+
 		showTransfers(txTransfers.transfers)
 	}
 }
@@ -120,44 +119,6 @@ func sleepIfGasConsumed(slept *bool, minBlockIndex uint, txID, contract, addr st
 	if addr == tx.Sender {
 		time.Sleep(1 * time.Second)
 		*slept = true
-	}
-}
-
-func showTransfers(transfers []*models.Transfer) {
-	for _, transfer := range transfers {
-		from := transfer.From
-		to := transfer.To
-		amount := transfer.Amount
-		contractHash := transfer.Contract
-		contract, ok := asset.GetNEP5(contractHash)
-		if !ok {
-			log.Panicf("Failed to get asset info of contract %s", contractHash)
-		}
-
-		symbol := contract.Symbol
-		msg := ""
-		amountStr := convert.BigFloatToString(amount)
-
-		if len(from) == 0 {
-			// Claim GAS.
-			if contractHash == models.GAS {
-				msg = fmt.Sprintf("   GAS claimed: %s + %s %s", to, amountStr, symbol)
-				msg = color.Green(msg)
-			} else {
-				msg = fmt.Sprintf("  Token minted: %s + %s %s", to, amountStr, symbol)
-				msg = color.LightGreen(msg)
-			}
-		} else {
-			if len(to) == 0 {
-				msg = fmt.Sprintf(" Destroy token: %s - %s %s", from, amountStr, symbol)
-				msg = color.LightPurple(msg)
-			} else {
-				msg = fmt.Sprintf("Token transfer: %s -> %s, amount %s %s", from, to, amountStr, symbol)
-				msg = color.LightCyan(msg)
-			}
-		}
-
-		log.Info(msg)
 	}
 }
 
