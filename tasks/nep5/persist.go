@@ -16,77 +16,90 @@ import (
 )
 
 func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
+	lastBlockIndex := uint(0)
 	for txTransfers := range transferChan {
-		if len(txTransfers.transfers) == 0 {
-			continue
+		if txTransfers.BlockIndex > lastBlockIndex {
+			lastBlockIndex = txTransfers.BlockIndex
+
+			// Handle contract add, migrate, delete actions.
+			handleContractStateChange(txTransfers.BlockIndex)
 		}
 
-		addrAssets := []*models.AddrAsset{}
-		addrTransfers := make(map[string]*models.AddrAsset)
+		processNEP5Transfers(txTransfers)
+	}
+}
 
-		// There may be a time gap between
-		// GAS balance updates and transaction gas fee deduction,
-		// If transaction sender's GAS changed, task should wait
-		// for some time to make sure GAS balance changing was finalized.
-		slept := false
+func processNEP5Transfers(txTransfers *notiTransfer) {
+	if len(txTransfers.transfers) == 0 {
+		return
+	}
 
-		addrTransferCntDelta := countAddressTransfers(txTransfers.transfers)
-		committeeGASBalances := getCommitteeGASBalances(txTransfers.transfers)
+	addrAssets := []*models.AddrAsset{}
+	addrTransfers := make(map[string]*models.AddrAsset)
 
-		for _, transfer := range txTransfers.transfers {
-			minBlockIndex := transfer.BlockIndex
-			contract := transfer.Contract
-			decimals, ok := asset.GetNEP5Decimals(contract)
+	// There may be a time gap between
+	// GAS balance updates and transaction gas fee deduction,
+	// If transaction sender's GAS changed, task should wait
+	// for some time to make sure GAS balance changing was finalized.
+	slept := false
+
+	addrTransferCntDelta := countAddressTransfers(txTransfers.transfers)
+	committeeGASBalances := getCommitteeGASBalances(txTransfers.transfers)
+
+	for _, transfer := range txTransfers.transfers {
+		minBlockIndex := transfer.BlockIndex
+		contract := transfer.Contract
+		decimals, ok := asset.GetNEP5Decimals(contract)
+		if !ok {
+			continue
+		}
+		addrs := map[string]bool{}
+		if len(transfer.From) > 0 {
+			addrs[transfer.From] = true
+		}
+		if len(transfer.To) > 0 {
+			addrs[transfer.To] = true
+		}
+
+		// Get contract balance of these addresses.
+		for addr := range addrs {
+			// Filter this query if already queried.
+			if addrAsset, ok := addrTransfers[addr+contract]; ok {
+				addrAsset.Transfers++
+				continue
+			}
+
+			sleepIfGasConsumed(&slept, minBlockIndex, transfer.TxID, contract, addr)
+
+			balance, ok := util.QueryNEP5Balance(minBlockIndex, addr, contract, decimals)
 			if !ok {
 				continue
 			}
-			addrs := map[string]bool{}
-			if len(transfer.From) > 0 {
-				addrs[transfer.From] = true
+
+			addrAsset := models.AddrAsset{
+				Address:   addr,
+				Contract:  contract,
+				Balance:   balance,
+				Transfers: 1, // Number of transfers added.
 			}
-			if len(transfer.To) > 0 {
-				addrs[transfer.To] = true
-			}
 
-			// Get contract balance of these addresses.
-			for addr := range addrs {
-				// Filter this query if already queried.
-				if addrAsset, ok := addrTransfers[addr+contract]; ok {
-					addrAsset.Transfers++
-					continue
-				}
-
-				sleepIfGasConsumed(&slept, minBlockIndex, transfer.TxID, contract, addr)
-
-				balance, ok := util.QueryNEP5Balance(minBlockIndex, addr, contract, decimals)
-				if !ok {
-					continue
-				}
-
-				addrAsset := models.AddrAsset{
-					Address:   addr,
-					Contract:  contract,
-					Balance:   balance,
-					Transfers: 1, // Number of transfers added.
-				}
-
-				addrAssets = append(addrAssets, &addrAsset)
-				addrTransfers[addr+contract] = &addrAsset
-			}
+			addrAssets = append(addrAssets, &addrAsset)
+			addrTransfers[addr+contract] = &addrAsset
 		}
+	}
 
-		// if new GAS total supply is not nil, then the value should be updated.
-		newGASTotalSupply := updateGASTotalSupply(txTransfers.transfers)
+	// if new GAS total supply is not nil, then the value should be updated.
+	newGASTotalSupply := updateGASTotalSupply(txTransfers.transfers)
 
-		if len(txTransfers.transfers) > 0 ||
-			len(addrAssets) > 0 {
-			db.InsertNEP5Transfers(txTransfers.transfers,
-				addrAssets,
-				addrTransferCntDelta,
-				newGASTotalSupply,
-				committeeGASBalances)
-			showTransfers(txTransfers.transfers)
-		}
+	if len(txTransfers.transfers) > 0 ||
+		len(addrAssets) > 0 {
+		db.InsertNEP5Transfers(
+			txTransfers.transfers,
+			addrAssets,
+			addrTransferCntDelta,
+			newGASTotalSupply,
+			committeeGASBalances)
+		showTransfers(txTransfers.transfers)
 	}
 }
 
@@ -117,28 +130,28 @@ func showTransfers(transfers []*models.Transfer) {
 		from := transfer.From
 		to := transfer.To
 		amount := transfer.Amount
-		contract := transfer.Contract
-		symbol, ok := asset.GetNEP5Symbol(contract)
+		contractHash := transfer.Contract
+		contract, ok := asset.GetNEP5(contractHash)
 		if !ok {
-			log.Panicf("Failed to get asset info of contract %s", contract)
+			log.Panicf("Failed to get asset info of contract %s", contractHash)
 		}
 
+		symbol := contract.Symbol
 		msg := ""
 		amountStr := convert.BigFloatToString(amount)
 
 		if len(from) == 0 {
 			// Claim GAS.
-			if contract == models.GAS {
+			if contractHash == models.GAS {
 				msg = fmt.Sprintf("GAS claimed: %s %s -> %s", amountStr, symbol, to)
 			} else {
 				msg = fmt.Sprintf("Mint token: %s %s -> %s", amountStr, symbol, to)
 			}
 		} else {
 			if len(to) == 0 {
-				msg = fmt.Sprintf("Destroy token: %s destroyed %s %s", from, convert.BigFloatToString(amount), symbol)
+				msg = fmt.Sprintf("Destroy token: %s destroyed %s %s", from, amountStr, symbol)
 			} else {
-				msg = fmt.Sprintf("NEP5 transfer: %34s -> %34s, amount: %s %s",
-					from, to, amountStr, symbol)
+				msg = fmt.Sprintf("NEP5 transfer: %s -> %s, amount: %s %s", from, to, amountStr, symbol)
 			}
 		}
 

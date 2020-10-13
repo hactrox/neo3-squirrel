@@ -48,15 +48,35 @@ func InsertApplicationLog(appLog *models.ApplicationLog) {
 	})
 }
 
-// GetLastBlockAppLog returns the last block application log record.
-func GetLastBlockAppLog() *models.ApplicationLog {
+// GetLastAppLog returns the last application log record.
+func GetLastAppLog() *models.ApplicationLog {
+	return getLastAppLog(models.AppLogTriggerAll)
+}
+
+// GetLastSystemAppLog returns the last application log record
+// of trigger type 'System'.
+func GetLastSystemAppLog() *models.ApplicationLog {
+	return getLastAppLog(models.AppLogTriggerSystem)
+
+}
+
+// GetLastApplicationAppLog returns the last application log record
+// of trigger type 'Application'.
+func GetLastApplicationAppLog() *models.ApplicationLog {
+	return getLastAppLog(models.AppLogTriggerApplication)
+}
+
+func getLastAppLog(trigger models.AppLogTrigger) *models.ApplicationLog {
 	query := []string{
 		fmt.Sprintf("SELECT %s", strings.Join(appLogColumns, ", ")),
 		"FROM `applicationlog`",
-		"WHERE `trigger` = 'System'",
-		"ORDER BY `id` DESC",
-		"LIMIT 1",
 	}
+
+	if trigger != models.AppLogTriggerAll {
+		query = append(query, fmt.Sprintf("WHERE `trigger` = '%s'", trigger))
+	}
+
+	query = append(query, "ORDER BY `id` DESC", "LIMIT 1")
 
 	return getApplicatoinLogQuery(mysql.Compose(query))
 }

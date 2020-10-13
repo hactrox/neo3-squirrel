@@ -2,9 +2,9 @@ package contractstate
 
 import (
 	"container/list"
-	"fmt"
+	"log"
 	"neo3-squirrel/models"
-	"neo3-squirrel/util/log"
+	"reflect"
 	"sync"
 )
 
@@ -12,25 +12,6 @@ var (
 	contractStates = list.New()
 	mu             sync.RWMutex
 )
-
-// Init loads all contract state from db into cache.
-func Init(data [][]*models.ContractState) {
-	mu.Lock()
-	defer mu.Unlock()
-
-	l := contractStates.Len()
-	if l > 0 {
-		err := fmt.Errorf("contract state cache can only be loaded once. Current len: %d", l)
-		log.Panic(err)
-	}
-
-	for _, list := range data {
-		if len(list) == 0 {
-			continue
-		}
-		contractStates.PushBack(list)
-	}
-}
 
 // AddContractState caches contract states,
 // all contract states must have the same block index.
@@ -52,12 +33,17 @@ func PopFirstIf(blockIndex uint) []*models.ContractState {
 	}
 
 	firstElem := contractStates.Front()
-	list := firstElem.Value.([]*models.ContractState)
+	list, ok := firstElem.Value.([]*models.ContractState)
+	if !ok {
+		log.Panicf("Failed to extract contract state from cache, get data type=%s",
+			reflect.TypeOf(firstElem.Value).String())
+	}
+
 	if len(list) == 0 {
 		return nil
 	}
 
-	if list[0].BlockIndex >= blockIndex {
+	if blockIndex <= list[0].BlockIndex {
 		return nil
 	}
 

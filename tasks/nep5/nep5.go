@@ -84,9 +84,20 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 		lastApplogID = appLog.ID
 	}
 
+	lastNotiBlockIndex := uint(0)
+
 	for {
 		notis := db.GetGroupedAppLogNotifications(lastApplogID+1, 100)
 		if len(notis) == 0 {
+			// Get last appLog record.
+			lastAppLog := db.GetLastAppLog()
+			if lastAppLog != nil && lastAppLog.BlockIndex > lastNotiBlockIndex {
+				if len(db.GetAppLogNotifications(lastApplogID+1, 1)) == 0 {
+					// Handle contract add, migrate, delete actions.
+					handleContractStateChange(lastAppLog.BlockIndex)
+				}
+			}
+
 			time.Sleep(1 * time.Second)
 			continue
 		}
@@ -110,9 +121,11 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 
 		for _, notis := range notiArrays {
 			txID := notis[0].TxID
+			blockIndex := notis[0].BlockIndex
+
 			txTransfers := notiTransfer{
 				TxID:       txID,
-				BlockIndex: notis[0].BlockIndex,
+				BlockIndex: blockIndex,
 			}
 
 			for _, noti := range notis {
@@ -135,6 +148,7 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 		}
 
 		lastTxID := notis[len(notis)-1].TxID
+		lastNotiBlockIndex = notis[len(notis)-1].BlockIndex
 		appLog := db.GetApplicationLogByTxID(lastTxID)
 		if appLog == nil {
 			log.Panicf("Failed to get application log of tx %s", lastTxID)

@@ -26,16 +26,16 @@ SELECT 'check address transfer count', IF(
            FROM (SELECT `addr`, SUM(cnt) `transfers`
                  FROM (
                           SELECT `from` `addr`, COUNT(`from`) `cnt`
-                          FROM `transfer`
+                          FROM `transfer` WHERE `from` != ''
                           GROUP BY `from`
                           UNION ALL
                           SELECT `to` `addr`, COUNT(`to`) `cnt`
-                          FROM `transfer`
+                          FROM `transfer` WHERE `to` != ''
                           GROUP BY `to`
                           UNION ALL
                           SELECT `from` `addr`, -COUNT(id) `cnt`
                           FROM `transfer`
-                          WHERE `from` = `to`
+                          WHERE `from` != '' AND `from` = `to`
                           GROUP BY `from`
                       ) `tbl`
                  WHERE `addr` <> ''
@@ -88,11 +88,11 @@ UNION ALL
 
 SELECT 'check assets', IF(
     !EXISTS(
-       SELECT `contract`
+       SELECT distinct `contract`
        FROM `transfer`
        WHERE `contract` NOT IN (
            SELECT `contract` FROM `asset`
-        )
+        ) AND `visible`=TRUE
    )
 , 'PASS', 'FAIL')
 
@@ -100,12 +100,33 @@ UNION ALL
 
 SELECT 'check addr asset transfers', IF(
     !EXISTS(
-        SELECT `cal`.`address`, `cal`.`transfers` `get`, `address`.`transfers` `want`
+        SELECT `cal`.`address`, `cal`.`transfers` `get`, `tbl`.`transfers` `want`
         FROM (SELECT `address`, SUM(`transfers`) `transfers`
               FROM `addr_asset`
               GROUP BY `address`) `cal`
-            JOIN `address` ON `cal`.`address` = `address`.`address`
-        WHERE `cal`.`transfers` <> `address`.transfers
+            JOIN (
+                SELECT `addr`, SUM(cnt) `transfers`
+                 FROM (
+                          SELECT `from` `addr`, COUNT(`from`) `cnt`
+                          FROM `transfer`
+                          WHERE `from` != '' AND `visible` = true
+                          GROUP BY `from`
+                          UNION ALL
+                          SELECT `to` `addr`, COUNT(`to`) `cnt`
+                          FROM `transfer`
+                          WHERE `to` != '' AND `visible` = true
+                          GROUP BY `to`
+                          UNION ALL
+                          SELECT `from` `addr`, -COUNT(id) `cnt`
+                          FROM `transfer`
+                          WHERE `from` != '' AND `from` = `to` AND `visible` = true
+                          GROUP BY `from`
+                      ) `tbl`
+                 WHERE `addr` <> ''
+                 GROUP BY `tbl`.`addr`
+            ) tbl
+            ON `cal`.`address` = `tbl`.`addr`
+        WHERE `cal`.`transfers` <> `tbl`.transfers
     )
 , 'PASS', 'FAIL')
 

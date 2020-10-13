@@ -74,7 +74,7 @@ func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *preAppLog, appLog
 
 	// Skip the genesis block.
 	nextBlockIndex := uint(1)
-	lastBlockAppLog := db.GetLastBlockAppLog()
+	lastBlockAppLog := db.GetLastSystemAppLog()
 	if lastBlockAppLog != nil {
 		nextBlockIndex = lastBlockAppLog.BlockIndex + 1
 	}

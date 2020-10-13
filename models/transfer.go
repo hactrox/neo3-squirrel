@@ -13,6 +13,7 @@ type Transfer struct {
 	From       string
 	To         string
 	Amount     *big.Float
+	// Visible    bool
 }
 
 // IsGASClaimTransfer tells if this transfer is GAS claim transfer.

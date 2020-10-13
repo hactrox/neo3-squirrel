@@ -7,6 +7,16 @@ import (
 	"neo3-squirrel/util/log"
 )
 
+// AppLogTrigger defiles application log trigger type.
+type AppLogTrigger string
+
+// ApplicationLog Triggers.
+const (
+	AppLogTriggerAll         AppLogTrigger = ""
+	AppLogTriggerSystem      AppLogTrigger = "System"
+	AppLogTriggerApplication AppLogTrigger = "Application"
+)
+
 // ApplicationLog db model.
 type ApplicationLog struct {
 	ID            uint

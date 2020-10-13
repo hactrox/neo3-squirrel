@@ -17,7 +17,7 @@ import (
 )
 
 // bufferSize is the capacity of pending blocks waiting to be persisted to db.
-const bufferSize = 5000
+const bufferSize = 20000
 
 var (
 	// bestRPCHeight util.SafeCounter.
@@ -69,7 +69,9 @@ func fetchBlock() {
 			continue
 		}
 
-		if nextHeight == rpc.GetBestHeight()+1 && (config.GetWorkers() == 1 || worker.num() == 1) {
+		if nextHeight == rpc.GetBestHeight()+1 &&
+			(config.GetWorkers() == 1 || worker.num() == 1) &&
+			prog.Finished {
 			waiting(&waited, nextHeight)
 		}
 
@@ -102,9 +104,6 @@ func waiting(waited *int, nextHeight int) {
 	time.Sleep(time.Second)
 	*waited++
 	log.Infof("Waiting for block index: %d(%s)\n", nextHeight, timeutil.ParseSeconds(uint64(*waited)))
-	// if waited >= 30 && waited%10 == 0 {
-	// 	rpc.SwitchServer()
-	// }
 }
 
 func arrangeBlock(dbHeight int, queue chan<- *rpc.Block) {
@@ -155,15 +154,17 @@ func storeBlock(ch <-chan *rpc.Block) {
 	// TODO: mail alert
 	// defer mail.AlertIfErr()
 
-	const size = 15
+	var pendingBlockSize = 0
 	rawBlocks := []*rpc.Block{}
 
 	for block := range ch {
 		rawBlocks = append(rawBlocks, block)
-		if block.Index%size == 0 ||
+		pendingBlockSize += block.Size
+		if pendingBlockSize >= 2*1024*1024 ||
 			int(block.Index) == buffer.GetHighest() {
 			store(rawBlocks)
 			rawBlocks = nil
+			pendingBlockSize = 0
 		}
 	}
 }

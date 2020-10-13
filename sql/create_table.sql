@@ -45,8 +45,8 @@ CREATE TABLE IF NOT EXISTS `transaction`
     `version`            INT UNSIGNED  NOT NULL,
     `nonce`           BIGINT UNSIGNED  NOT NULL,
     `sender`                 CHAR(34)  NOT NULL,
-    `sysfee`           DECIMAL(27, 8)  NOT NULL,
-    `netfee`           DECIMAL(27, 8)  NOT NULL,
+    `sysfee`           DECIMAL(24, 8)  NOT NULL,
+    `netfee`           DECIMAL(24, 8)  NOT NULL,
     `valid_until_block`  INT UNSIGNED  NOT NULL,
     `script`               MEDIUMTEXT  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
@@ -86,7 +86,7 @@ CREATE TABLE IF NOT EXISTS `applicationlog`
     `txid`               CHAR(66)  NOT NULL,
     `trigger`         VARCHAR(16)  NOT NULL,
     `vmstate`          VARCHAR(8)  NOT NULL,
-    `gasconsumed`  DECIMAL(27, 8)  NOT NULL,
+    `gasconsumed`  DECIMAL(24, 8)  NOT NULL,
     `stack`                  JSON  NOT NULL,
     `notifications`  INT UNSIGNED  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
@@ -119,7 +119,8 @@ CREATE TABLE IF NOT EXISTS `transfer`
     `contract`            CHAR(42)  NOT NULL,
     `from`                CHAR(34)  NOT NULL,
     `to`                  CHAR(34)  NOT NULL,
-    `amount`       DECIMAL(35, 32)  NOT NULL
+    `amount`       DECIMAL(65, 30)  NOT NULL,
+    `visible`             BOOLEAN   NOT NULL DEFAULT TRUE
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
@@ -128,7 +129,7 @@ CREATE TABLE IF NOT EXISTS `addr_asset`
     `id`          INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `contract`        CHAR(42)  NOT NULL,
     `address`         CHAR(34)  NOT NULL,
-    `balance`  DECIMAL(35, 32)  NOT NULL,
+    `balance`  DECIMAL(65, 30)  NOT NULL,
     `transfers`   INT UNSIGNED  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
@@ -143,7 +144,8 @@ CREATE TABLE IF NOT EXISTS `asset`
     `symbol`            VARCHAR(32)  NOT NULL,
     `decimals`     TINYINT UNSIGNED  NOT NULL,
     `type`              VARCHAR(16)  NOT NULL,
-    `total_supply`  DECIMAL(35, 32)  NOT NULL
+    `total_supply`  DECIMAL(65, 30)  NOT NULL,
+    `destroyed`             BOOLEAN  NOT NULL DEFAULT FALSE
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
@@ -184,7 +186,7 @@ CREATE TABLE IF NOT EXISTS `contract_state`
     `name`              VARCHAR(64)  NOT NULL,
     `symbol`            VARCHAR(32)  NOT NULL,
     `decimals`     TINYINT UNSIGNED  NOT NULL,
-    `total_supply`  DECIMAL(35, 32)  NOT NULL,
+    `total_supply`     VARCHAR(128)  NOT NULL,
     `script`             MEDIUMTEXT  NOT NULL,
     `manifest`                 JSON  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';

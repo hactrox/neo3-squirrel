@@ -41,6 +41,8 @@ func extractString(stackItem models.StackItem) (string, bool) {
 		}
 
 		return string(bytes), true
+	case "Integer":
+		return value.(string), true
 	default:
 		log.Errorf("Unsupported string extract type: %s, value=%v", typ, value)
 		return "", false

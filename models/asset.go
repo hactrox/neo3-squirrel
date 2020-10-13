@@ -21,6 +21,7 @@ type Asset struct {
 	Decimals    uint
 	Type        string
 	TotalSupply *big.Float
+	// Destroyed   bool
 }
 
 // AddrAsset db model.

@@ -8,13 +8,13 @@ import (
 var (
 	blockIndex  uint
 	totalSupply *big.Float
-	mutex       sync.Mutex
+	mu          sync.Mutex
 )
 
 // CacheGASTotalSupply caches latest GAS total supply.
 func CacheGASTotalSupply(newBlockIndex uint, newTotalSupply *big.Float) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
 	if newBlockIndex <= blockIndex {
 		return
@@ -32,8 +32,8 @@ func CachedTillBlockIndex() uint {
 // GetTotalSupply returns cached GAS total supply
 // recorded in which block index.
 func GetTotalSupply() (*big.Float, uint) {
-	mutex.Lock()
-	defer mutex.Unlock()
+	mu.Lock()
+	defer mu.Unlock()
 
 	return totalSupply, blockIndex
 }

@@ -6,6 +6,7 @@
     "database": "DATABASE",
 
     "debug": false,
+    "debugSQL": false,
 
     "rpcs": [
         "RPC1"
