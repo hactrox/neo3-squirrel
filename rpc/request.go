@@ -70,10 +70,9 @@ func generateRequestBody(method string, params []interface{}) string {
 	return body
 }
 
-func call(minHeight uint, params string, target interface{}) {
+func request(minHeight uint, params string, target interface{}) {
 	reqLock.RLock()
-	defer reqLock.RUnlock()
-	// log.Debugf("rpc call: minHeight=%d, params=%s", minHeight, params)
+	// log.Debugf("rpc request: minHeight=%d, params=%s", minHeight, params)
 
 	requestBody := []byte(params)
 	resp := fasthttp.AcquireResponse()
@@ -82,14 +81,22 @@ func call(minHeight uint, params string, target interface{}) {
 	req.SetBody(requestBody)
 
 	for {
-		url, ok := selectNode(minHeight)
+		url, ok, currBestHeight := selectNode(minHeight)
 		if !ok {
-			if strings.Contains(params, `"getblock"`) {
-				// Exceed the highest block index, return nil.
+			time.Sleep(50 * time.Millisecond)
+			if allNodesDown || currBestHeight == -1 {
+				reqLock.RUnlock()
+				request(minHeight, params, target)
 				return
 			}
 
-			delay := 3
+			if strings.Contains(params, `"getblock"`) {
+				// Exceed the highest block index, return nil.
+				reqLock.RUnlock()
+				return
+			}
+
+			delay := 1
 			msg := fmt.Sprintf("All fullnodes lower than height %d. ", minHeight)
 			msg += fmt.Sprintf("Retry request after %d seconds", delay)
 			log.Warn(color.Yellowf(msg))
@@ -102,7 +109,9 @@ func call(minHeight uint, params string, target interface{}) {
 		req.SetRequestURI(url)
 		err := client.Do(req, resp)
 		if err != nil {
-			if !strings.Contains(err.Error(), "timed out") {
+			if !strings.Contains(err.Error(), "timed out") &&
+				!strings.Contains(err.Error(), "connection refused") &&
+				!strings.Contains(err.Error(), "the server closed connection before returning the first response byte.") {
 				log.Error(err)
 			}
 			nodeUnavailable(url)
@@ -121,4 +130,6 @@ func call(minHeight uint, params string, target interface{}) {
 		log.Errorf("Request body: %v", string(requestBody))
 		log.Errorf("Response: %v", string(bodyBytes))
 	}
+
+	reqLock.RUnlock()
 }

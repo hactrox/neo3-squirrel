@@ -140,8 +140,16 @@ func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *preAppLog, appLog
 			for {
 				re := queryResult[i]
 
-				// 30 seconds.
+				// Wait for at most 30 seconds to crash unless all fullnodes down.
 				if retry > 3000 {
+					if rpc.AllFullnodesDown() {
+						retry = 0
+						for rpc.AllFullnodesDown() {
+							time.Sleep(100 * time.Millisecond)
+						}
+						continue
+					}
+
 					log.Panicf("Failed to get applog of %s(index=%d, time=%d)", re.Hash, re.BlockIndex, re.BlockTime)
 				}
 

@@ -46,7 +46,7 @@ func GetApplicationLog(minBlockIndex uint, txID string) *ApplicationLogResult {
 	delay := 0
 
 	for {
-		call(minBlockIndex, args, &resp)
+		request(minBlockIndex, args, &resp)
 		if resp.Result != nil {
 			return resp.Result
 		}

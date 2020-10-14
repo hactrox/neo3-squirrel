@@ -40,7 +40,7 @@ func SyncBlock(index uint) *Block {
 	args := generateRequestBody("getblock", params)
 
 	respData := BlockResponse{}
-	call(index, args, &respData)
+	request(index, args, &respData)
 
 	block := respData.Result
 	if block != nil && block.Index > 0 {

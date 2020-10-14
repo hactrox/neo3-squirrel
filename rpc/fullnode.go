@@ -17,8 +17,9 @@ import (
 
 var (
 	// map[host(string)]height(int)
-	nodeHeights sync.Map
-	reqLock     sync.RWMutex
+	nodeHeights  sync.Map
+	reqLock      sync.RWMutex
+	allNodesDown bool
 
 	bestHeight counter.SafeCounter
 )
@@ -52,11 +53,16 @@ func updateNodes(mp map[string]int) {
 func GetStatus() {
 	for host, height := range getNodes() {
 		if height < 0 {
-			log.Warnf(color.BRedf("%s: Server unavailable", host))
+			log.Warnf(color.BRedf("%s: fullnode rpc unavailable", host))
 		} else {
 			log.Infof("%s: %d\n", host, height)
 		}
 	}
+}
+
+// AllFullnodesDown tells if all fullnode down.
+func AllFullnodesDown() bool {
+	return allNodesDown
 }
 
 // GetBestHeight Get the highest best height from all connected fullnodes.
@@ -111,21 +117,22 @@ func TraceBestHeight() {
 		for {
 			bestHeight := refreshNodesHeight()
 			if bestHeight == -1 {
+				allNodesDown = true
 				reqLock.Lock()
 				hinted := false
 				for {
 					bestHeight = refreshNodesHeight()
 					if bestHeight > -1 {
 						reqLock.Unlock()
+						allNodesDown = false
+						log.Info(color.BGreenf("Alive fullnode detected, continue sync tasks."))
 						break
 					}
 
 					if !hinted {
-						msgs := []string{
-							"All fullnodes down.",
-							"All sync tasks paused and waiting for any nodes wake up.",
-						}
-						log.Warn(color.BYellow(strings.Join(msgs, " ")))
+						log.Warn(color.BYellow("All upstream fullnodes down."))
+						log.Warn(color.BYellow("All tasks paused."))
+						log.Warn(color.BYellow("Waiting for any nodes wake up."))
 						hinted = true
 					}
 
@@ -138,11 +145,16 @@ func TraceBestHeight() {
 	}()
 }
 
-func selectNode(minHeight uint) (string, bool) {
+func selectNode(minHeight uint) (string, bool, int) {
 	// Suppose all nodes are qualified.
 	candidates := []string{}
+	currBestHeight := -1
 
 	for url, height := range getNodes() {
+		if height > currBestHeight {
+			currBestHeight = height
+		}
+
 		if height >= int(minHeight) {
 			// Increase the possibility to select local nodes.
 			if strings.Contains(url, "127.0.0.1") ||
@@ -156,10 +168,10 @@ func selectNode(minHeight uint) (string, bool) {
 
 	l := len(candidates)
 	if l == 0 {
-		return "", false
+		return "", false, currBestHeight
 	}
 
-	return candidates[rand.Intn(l)], true
+	return candidates[rand.Intn(l)], true, currBestHeight
 }
 
 // getHeights gets best height of all fullnodes.

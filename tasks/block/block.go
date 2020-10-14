@@ -86,6 +86,7 @@ func fetchBlock() {
 		// Beyond the latest block.
 		if b == nil {
 			if nextHeight >= rpc.GetBestHeight() &&
+				!rpc.AllFullnodesDown() &&
 				worker.shouldQuit() {
 				return
 			}
@@ -107,9 +108,9 @@ func fetchBlock() {
 }
 
 func waiting(waited *int, nextHeight int) {
-	time.Sleep(time.Second)
 	*waited++
 	log.Infof("Waiting for block index: %d(%s)\n", nextHeight, timeutil.ParseSeconds(uint64(*waited)))
+	time.Sleep(time.Second)
 }
 
 func arrangeBlock(dbHeight int, queue chan<- *rpc.Block) {
@@ -121,6 +122,10 @@ func arrangeBlock(dbHeight int, queue chan<- *rpc.Block) {
 	delay := 0
 
 	for {
+		for rpc.AllFullnodesDown() {
+			time.Sleep(100 * time.Millisecond)
+		}
+
 		if b, ok := buffer.Pop(int(height)); ok {
 			queue <- b
 			height++
@@ -134,14 +139,12 @@ func arrangeBlock(dbHeight int, queue chan<- *rpc.Block) {
 		}
 		delay += sleepTime
 
-		if delay >= 5000 && delay%1000 == 0 {
+		if delay >= 3000 && delay%1000 == 0 {
 			log.Infof("Waited for %d seconds for block height [%d] in [arrangeBlock]\n", delay/1000, height)
 		}
 
-		if delay%(1000*10) == 0 {
-			err := fmt.Errorf("block height %d is missing while downloading blocks", height)
-			log.Warn(err)
-
+		if delay > 3000 && (delay-3000)%1000 == 0 {
+			log.Warn(color.Yellowf("block height %d is missing while downloading blocks", height))
 			getMissingBlock(height)
 		}
 	}
@@ -175,6 +178,8 @@ func storeBlock(ch <-chan *rpc.Block) {
 	}
 }
 
+var bestHeight int
+
 func store(rawBlocks []*rpc.Block) {
 	maxIndex := int(rawBlocks[len(rawBlocks)-1].Index)
 	blocks := models.ParseBlocks(rawBlocks)
@@ -188,10 +193,9 @@ func store(rawBlocks []*rpc.Block) {
 	block.CacheBlocks(blocks)
 	db.InsertBlock(blocks, txBulk)
 
-	bestHeight := rpc.GetBestHeight()
-
-	if bestHeight < maxIndex {
-		bestHeight = maxIndex
+	rpcBestHeight := rpc.GetBestHeight()
+	if rpcBestHeight > bestHeight {
+		bestHeight = rpcBestHeight
 	}
 
 	showBlockStorageProgress(int64(maxIndex), int64(bestHeight))
@@ -214,13 +218,22 @@ func showBlockStorageProgress(maxIndex int64, highestIndex int64) {
 		prog.Finished = true
 	}
 
-	msg := fmt.Sprintf("%sBlock storage progress: %d/%d, %.4f%%",
-		prog.RemainingTimeStr,
-		maxIndex,
-		highestIndex,
-		prog.Percentage)
+	msg := fmt.Sprintf("Block storage progress: %d/%d, ", maxIndex, highestIndex)
 
-	if prog.Finished {
+	if prog.Percentage.Cmp(big.NewFloat(100)) >= 0 {
+		msg += "100%"
+	} else {
+		msg += fmt.Sprintf("%.4f%%", prog.Percentage)
+	}
+
+	if rpc.AllFullnodesDown() {
+		msg = color.BLightPurple("(sync from local buffer)") + msg
+		prog.LastOutputTime = now
+	} else {
+		msg = fmt.Sprintf("%s%s", prog.RemainingTimeStr, msg)
+	}
+
+	if prog.Finished && !rpc.AllFullnodesDown() {
 		msg += appLogSyncProgressIndicator()
 		msg += nep5SyncProgressIndicator()
 	}
@@ -243,7 +256,7 @@ func appLogSyncProgressIndicator() string {
 		return ""
 	}
 
-	return fmt.Sprintf(" [appLog left %d records %d/%d]", offset, lastPersistedPK, LastTx.ID)
+	return fmt.Sprintf(" [appLog left %d records]", offset)
 }
 
 func nep5SyncProgressIndicator() string {
@@ -260,5 +273,5 @@ func nep5SyncProgressIndicator() string {
 		return ""
 	}
 
-	return fmt.Sprintf(" [nep5 tx left %d records  %d/%d]", offset, lastPersistedPK, lastNoti.ID)
+	return fmt.Sprintf(" [nep5 tx left %d records]", offset)
 }

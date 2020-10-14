@@ -64,7 +64,7 @@ func InvokeFunction(minBlockIndex uint, contract, invokeFunc string, parameters 
 	delay := 0
 
 	for {
-		call(minBlockIndex, args, &resp)
+		request(minBlockIndex, args, &resp)
 		if resp.Result != nil {
 			return resp.Result
 		}
@@ -91,6 +91,6 @@ func GetContractStates(fromBlockIndex, batches uint) []*ContractState {
 
 	args := generateRequestBody(method, params)
 	resp := ContractStatesResponse{}
-	call(fromBlockIndex, args, &resp)
+	request(fromBlockIndex, args, &resp)
 	return resp.Result
 }
