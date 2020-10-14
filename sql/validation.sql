@@ -1,8 +1,22 @@
 SELECT 'Neo3 Squirrel SQL Validation', 'Result'
 UNION ALL
-SELECT 'check block count', IF(
+SELECT 'check counter field `block_index`', IF(
     (SELECT COUNT(`index`) FROM `block`) -
     (SELECT `block_index` FROM `counter`) = 1
+, 'PASS', 'FAIL')
+
+UNION ALL
+
+SELECT 'check counter field `tx_count`', IF(
+    (SELECT IFNULL((SELECT COUNT(`id`) FROM `transaction`), 0)) -
+    (SELECT `tx_count` FROM `counter`) = 0
+, 'PASS', 'FAIL')
+
+UNION ALL
+
+SELECT 'check counter field `addr_count`', IF(
+    (SELECT IFNULL((SELECT COUNT(`id`) FROM `address`), 0)) -
+    (SELECT `addr_count` FROM `counter`) = 0
 , 'PASS', 'FAIL')
 
 UNION ALL
@@ -128,13 +142,6 @@ SELECT 'check addr asset transfers', IF(
             ON `cal`.`address` = `tbl`.`addr`
         WHERE `cal`.`transfers` <> `tbl`.transfers
     )
-, 'PASS', 'FAIL')
-
-UNION ALL
-
-SELECT 'check address count', IF(
-    (SELECT IFNULL((SELECT COUNT(`id`) FROM `address`), 0)) -
-    (SELECT `addr_count` FROM `counter`) = 0
 , 'PASS', 'FAIL')
 
 UNION ALL
