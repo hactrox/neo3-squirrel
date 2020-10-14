@@ -57,6 +57,10 @@ func updateAddressCounter(sqlTx *sql.Tx, addrAdded uint) error {
 	return updateCounterDelta(sqlTx, "`addr_count`", int64(addrAdded))
 }
 
+func updateTxCounter(sqlTx *sql.Tx, txAdded int) error {
+	return updateCounterDelta(sqlTx, "`tx_count`", int64(txAdded))
+}
+
 func updateCounter(sqlTx *sql.Tx, field string, value interface{}) error {
 	query := []string{
 		"UPDATE `counter`",
@@ -76,6 +80,10 @@ func updateCounter(sqlTx *sql.Tx, field string, value interface{}) error {
 }
 
 func updateCounterDelta(sqlTx *sql.Tx, field string, delta int64) error {
+	if delta == 0 {
+		return nil
+	}
+
 	query := []string{
 		"UPDATE `counter`",
 		fmt.Sprintf("SET %s = %s + %d", field, field, delta),

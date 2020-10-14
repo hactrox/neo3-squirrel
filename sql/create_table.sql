@@ -1,8 +1,9 @@
 CREATE TABLE IF NOT EXISTS `counter`
 (
-    `id`          INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `block_index`          INT  NOT NULL,
-    `addr_count`  INT UNSIGNED  NOT NULL
+    `id`           INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
+    `block_index`           INT  NOT NULL DEFAULT 0,
+    `addr_count`   INT UNSIGNED  NOT NULL DEFAULT 0,
+    `tx_count`     INT UNSIGNED  NOT NULL DEFAULT 0
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 INSERT INTO `counter`(`id`, `block_index`, `addr_count`) VALUES(1, -1, 0);
