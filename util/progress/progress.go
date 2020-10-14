@@ -15,9 +15,7 @@ type Progress struct {
 	Percentage       *big.Float
 	RemainingTimeStr string
 	// Finished indicates if fully synced(current task).
-	Finished bool
-	// MailSent is a mark that when fully synced, send notify mail once.
-	MailSent       bool
+	Finished       bool
 	LastOutputTime time.Time
 }
 

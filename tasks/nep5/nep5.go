@@ -68,8 +68,6 @@ func StartNEP5TransferSyncTask() {
 }
 
 func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) {
-	// TODO: mail alert
-
 	lastApplogID := uint(0)
 
 	if lastNotiTxID != "" {

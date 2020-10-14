@@ -73,8 +73,6 @@ func StartApplicationLogSyncTask() {
 }
 
 func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *preAppLog, appLogChan chan<- *appLogResult) {
-	// TODO: mail alert
-
 	// Skip the genesis block.
 	nextBlockIndex := uint(1)
 	lastBlockAppLog := db.GetLastSystemAppLog()

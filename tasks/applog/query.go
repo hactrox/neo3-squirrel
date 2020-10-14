@@ -5,8 +5,6 @@ import (
 )
 
 func queryAppLog(workers int, preAppLogChan <-chan *preAppLog) {
-	// TODO: mail alert
-
 	for i := 0; i < workers; i++ {
 		go func(ch <-chan *preAppLog) {
 			for pre := range ch {

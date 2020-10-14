@@ -61,9 +61,6 @@ func fetchBlock() {
 		log.Info(color.Greenf("%s. Remaining workers=%d", hint, worker.num()))
 	}()
 
-	// TODO: mail alert
-	// defer mail.AlertIfErr()
-
 	for {
 		// Control size of the buffer.
 		if buffer.Size() > bufferSize {
@@ -110,9 +107,6 @@ func waiting(waited *int, nextHeight int) {
 }
 
 func arrangeBlock(dbHeight int, queue chan<- *rpc.Block) {
-	// TODO: mail alert
-	// defer mail.AlertIfErr()
-
 	const sleepTime = 20
 	height := uint(dbHeight + 1)
 	delay := 0
@@ -156,9 +150,6 @@ func getMissingBlock(height uint) {
 }
 
 func storeBlock(ch <-chan *rpc.Block) {
-	// TODO: mail alert
-	// defer mail.AlertIfErr()
-
 	var pendingBlockSize = 0
 	rawBlocks := []*rpc.Block{}
 

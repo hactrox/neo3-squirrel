@@ -88,9 +88,6 @@ func refreshNodesHeight() int {
 
 // TraceBestHeight traces the best block height of listed rpc nodes.
 func TraceBestHeight() {
-	// TODO: mail alert
-	// defer mail.AlertIfErr()
-
 	rpcs := config.GetRPCs()
 	newodeHeight := make(map[string]int)
 	for _, rpc := range rpcs {

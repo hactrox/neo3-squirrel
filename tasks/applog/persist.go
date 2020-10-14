@@ -7,8 +7,6 @@ import (
 )
 
 func persistApplicationLogs(appLogChan <-chan *appLogResult) {
-	// TODO: mail alert
-
 	for result := range appLogChan {
 		logResult := result.appLogQueryResult
 		blockIndex := result.BlockIndex
