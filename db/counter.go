@@ -49,10 +49,36 @@ func getCounterInstance() Counter {
 	return counter
 }
 
+func updateBlockIndexCounter(sqlTx *sql.Tx, blockIndex uint) error {
+	return updateCounter(sqlTx, "`block_index`", blockIndex)
+}
+
+func updateAddressCounter(sqlTx *sql.Tx, addrAdded uint) error {
+	return updateCounterDelta(sqlTx, "`addr_count`", int64(addrAdded))
+}
+
 func updateCounter(sqlTx *sql.Tx, field string, value interface{}) error {
 	query := []string{
 		"UPDATE `counter`",
 		fmt.Sprintf("SET %s=%v", field, value),
+		"WHERE `id`=1",
+		"LIMIT 1",
+	}
+
+	result, err := sqlTx.Exec(mysql.Compose(query))
+	if err != nil {
+		log.Error(err)
+		return err
+	}
+
+	mysql.CheckIfRowsNotAffected(result, query)
+	return err
+}
+
+func updateCounterDelta(sqlTx *sql.Tx, field string, delta int64) error {
+	query := []string{
+		"UPDATE `counter`",
+		fmt.Sprintf("SET %s = %s + %d", field, field, delta),
 		"WHERE `id`=1",
 		"LIMIT 1",
 	}

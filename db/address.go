@@ -106,25 +106,9 @@ func updateAddressInfo(sqlTx *sql.Tx, delta map[string]*models.AddressInfo) erro
 	}
 
 	if addrAdded > 0 {
-		if err := addAddressCount(sqlTx, addrAdded); err != nil {
+		if err := updateAddressCounter(sqlTx, addrAdded); err != nil {
 			return err
 		}
-	}
-
-	return err
-}
-
-func addAddressCount(sqlTx *sql.Tx, added uint) error {
-	query := []string{
-		"UPDATE `counter`",
-		fmt.Sprintf("SET `addr_count` = `addr_count` + %d", added),
-		"WHERE `id` = 1",
-		"LIMIT 1",
-	}
-
-	_, err := sqlTx.Exec(mysql.Compose(query))
-	if err != nil {
-		log.Error(err)
 	}
 
 	return err

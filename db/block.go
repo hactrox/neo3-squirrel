@@ -58,7 +58,7 @@ func InsertBlock(blocks []*models.Block, txBulk *models.TxBulk) {
 			}
 		}
 
-		return updateCounter(sqlTx, "block_index", int64(blocks[len(blocks)-1].Index))
+		return updateBlockIndexCounter(sqlTx, blocks[len(blocks)-1].Index)
 	})
 }
 
