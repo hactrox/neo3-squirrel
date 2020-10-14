@@ -46,7 +46,10 @@ func Load(display bool) {
 	if err := load(display); err != nil {
 		panic(err)
 	}
-	if err := check(); err != nil {
+
+	attachRPCHTTPScheme()
+
+	if err := validateConfig(); err != nil {
 		panic(err)
 	}
 }
@@ -121,7 +124,16 @@ func load(display bool) error {
 	return nil
 }
 
-func check() error {
+func attachRPCHTTPScheme() {
+	for i := 0; i < len(cfg.RPCs); i++ {
+		rpc := cfg.RPCs[i]
+		if !strings.HasPrefix(rpc, "http") {
+			cfg.RPCs[i] = "http://" + rpc
+		}
+	}
+}
+
+func validateConfig() error {
 	if err := checkRPCs(); err != nil {
 		return err
 	}
