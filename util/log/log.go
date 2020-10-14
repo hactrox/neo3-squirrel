@@ -35,9 +35,10 @@ type Logger struct {
 }
 
 var (
-	logger  Logger
-	logPath = "./logs"
-	debug   bool
+	logger    Logger
+	logPath   = "./logs"
+	debug     bool
+	logPrefix string
 )
 
 // Init creates global logger instances.
@@ -55,6 +56,11 @@ func Init(debugMode bool) {
 		Warn:  newLogger(logNameWarning, logrus.WarnLevel),
 		Error: newLogger(logNameError, logrus.ErrorLevel),
 	}
+}
+
+// SetPrefix sets the output prefix for the logger.
+func SetPrefix(prefix string) {
+	logPrefix = prefix
 }
 
 func newLogger(fileName string, level logrus.Level) *logrus.Logger {
@@ -102,8 +108,15 @@ type logFormatter struct{}
 
 // Format formats log output.
 func (f *logFormatter) Format(e *logrus.Entry) ([]byte, error) {
-	data := fmt.Sprintf("%s [%s] %s", e.Time.Format(logTimeFormat), e.Level.String(), e.Message)
-	return []byte(data), nil
+	format := ""
+
+	if logPrefix != "" {
+		format = fmt.Sprintf("%s [%s][%s] %s", e.Time.Format(logTimeFormat), logPrefix, e.Level.String(), e.Message)
+		return []byte(format), nil
+	}
+
+	format = fmt.Sprintf("%s [%s] %s", e.Time.Format(logTimeFormat), e.Level.String(), e.Message)
+	return []byte(format), nil
 }
 
 // Debugf logs in Debug level.

@@ -22,6 +22,7 @@ func main() {
 	flag.Parse()
 	config.Load(true)
 	log.Init(config.DebugMode())
+	log.SetPrefix(config.GetLabel())
 	db.Init()
 
 	if pprofEnabled {
