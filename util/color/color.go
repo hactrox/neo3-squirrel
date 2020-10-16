@@ -187,6 +187,12 @@ func BPurple(txt string) string {
 	return Render(purple, bold, txt)
 }
 
+// BPurplef returns bold purple
+func BPurplef(format string, a ...interface{}) string {
+	msg := fmt.Sprintf(format, a...)
+	return BPurple(msg)
+}
+
 // BCyan returns bold cyan
 func BCyan(txt string) string {
 	return Render(cyan, bold, txt)
