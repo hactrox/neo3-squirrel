@@ -44,8 +44,19 @@ func getNodes() map[string]int {
 }
 
 func updateNodes(mp map[string]int) {
-	for host, height := range mp {
-		nodeHeights.Store(host, height)
+	for host, newHeight := range mp {
+		oldHeight, ok := nodeHeights.Load(host)
+		if ok {
+			if oldHeight == -1 && newHeight > 0 {
+				log.Info(color.BGreenf("Upstream fullnode %s now available(height=%d)", host, newHeight))
+			}
+
+			if oldHeight.(int) > -1 && newHeight == -1 {
+				log.Info(color.BPurplef("Upstream fullnode %s unavailable", host))
+			}
+		}
+
+		nodeHeights.Store(host, newHeight)
 	}
 }
 
@@ -53,7 +64,7 @@ func updateNodes(mp map[string]int) {
 func GetStatus() {
 	for host, height := range getNodes() {
 		if height < 0 {
-			log.Warnf(color.BRedf("%s: fullnode rpc unavailable", host))
+			log.Warnf(color.Redf("%s: failed to get block height, rpc unavailable", host))
 		} else {
 			log.Infof("%s: %d\n", host, height)
 		}
@@ -91,7 +102,7 @@ func TraceBestHeight() {
 	rpcs := config.GetRPCs()
 	newodeHeight := make(map[string]int)
 	for _, rpc := range rpcs {
-		newodeHeight[rpc] = 0
+		newodeHeight[rpc] = -2
 	}
 
 	if len(newodeHeight) == 0 {
