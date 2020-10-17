@@ -1,6 +1,7 @@
 package block
 
 import (
+	"fmt"
 	"neo3-squirrel/cache/block"
 	"neo3-squirrel/config"
 	"neo3-squirrel/db"
@@ -23,19 +24,23 @@ var (
 	buffer       Buffer
 	worker       Worker
 	blockChannel chan *rpc.Block
+
+	// bestBlockIndex traces the highest node height.
+	// The value won't decrease even if node resync.
+	bestBlockIndex int
 )
 
 // StartBlockSyncTask starts block sync tasks.
 func StartBlockSyncTask() {
 	lastBlockHeight := db.GetLastBlockHeight()
-	bestBlockHeight := rpc.GetBestHeight()
+	bestBlockIndex := rpc.GetBestHeight()
 
-	if lastBlockHeight == bestBlockHeight {
+	if lastBlockHeight == bestBlockIndex {
 		prog.Finished = true
 	}
 
-	log.Info(color.Greenf("Block sync progress: %d/%d", lastBlockHeight, bestBlockHeight),
-		color.BGreenf(", %d", bestBlockHeight-lastBlockHeight),
+	log.Info(color.Greenf("Block sync progress: %d/%d", lastBlockHeight, bestBlockIndex),
+		color.BGreenf(", %d", bestBlockIndex-lastBlockHeight),
 		color.Green(" blocks behind"))
 
 	buffer = NewBuffer(lastBlockHeight)
@@ -68,24 +73,36 @@ func fetchBlock() {
 			continue
 		}
 
-		if nextHeight == rpc.GetBestHeight()+1 &&
-			(config.GetWorkers() == 1 || worker.num() == 1) &&
-			prog.Finished {
-			waiting(&waited, nextHeight)
+		// Trace the one-way increment rpc best height.
+		rpcBestHeight := rpc.GetBestHeight()
+		if rpcBestHeight > bestBlockIndex {
+			bestBlockIndex = rpcBestHeight
 		}
 
-		b := rpc.SyncBlock(uint(nextHeight))
+		// Wait till any upstream fullnode is alive.
+		for rpc.AllFullnodesDown() {
+			time.Sleep(100 * time.Millisecond)
+		}
 
-		// Beyond the latest block.
+		// Waiting for the next block.
+		if nextHeight >= bestBlockIndex+1 &&
+			(config.GetWorkers() == 1 || worker.num() == 1) {
+			waiting(&waited, nextHeight)
+			continue
+		}
+
+		// Get new block from upstream fullnodes.
+		b := rpc.SyncBlock(uint(nextHeight))
 		if b == nil {
-			if nextHeight >= rpc.GetBestHeight() &&
+			// Quit extra goroutines if beyond the latest block.
+			if nextHeight >= bestBlockIndex &&
 				!rpc.AllFullnodesDown() &&
 				worker.shouldQuit() {
 				return
 			}
 
-			// Get the correct next pending block.
 			nextHeight = buffer.GetHighest() + 1
+			time.Sleep(1 * time.Second)
 			continue
 		}
 
@@ -101,9 +118,24 @@ func fetchBlock() {
 }
 
 func waiting(waited *int, nextHeight int) {
-	*waited++
-	log.Infof("Waiting for block index: %d(%s)\n", nextHeight, timeutil.ParseSeconds(uint64(*waited)))
 	time.Sleep(time.Second)
+
+	if prog.Finished {
+		*waited++
+	}
+
+	msg := fmt.Sprintf("Waiting for block index %d", nextHeight)
+	msg += fmt.Sprintf(" (%s)", timeutil.ParseSeconds(uint64(*waited)))
+
+	rpcBestHeight := rpc.GetBestHeight()
+	if rpcBestHeight < nextHeight-1 {
+		lag := nextHeight - rpcBestHeight
+		msg += color.Red(fmt.Sprintf(" (rpcBestHeight=%d, %d blocks behind)", rpcBestHeight, lag))
+	}
+
+	if prog.Finished || rpcBestHeight < nextHeight-1 {
+		log.Infof(msg)
+	}
 }
 
 func arrangeBlock(dbHeight int, queue chan<- *rpc.Block) {

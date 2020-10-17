@@ -30,16 +30,18 @@ func showBlockStorageProgress(maxIndex int64, highestIndex int64) {
 		prog.Finished = true
 	}
 
-	msg := fmt.Sprintf("Block storage progress: %d/%d, ", maxIndex, highestIndex)
+	msg := ""
 
 	if prog.Percentage.Cmp(big.NewFloat(100)) >= 0 {
-		msg += "100%"
+		msg += color.Greenf("Block storage progress: %d. Block fully synced.", maxIndex)
+		// msg += "100%"
 	} else {
+		msg += fmt.Sprintf("Block storage progress: %d/%d, ", maxIndex, highestIndex)
 		msg += fmt.Sprintf("%.4f%%", prog.Percentage)
 	}
 
 	if rpc.AllFullnodesDown() {
-		msg = color.BLightPurple("(sync from local buffer)") + msg
+		msg = color.LightPurple("(sync from local buffer)") + msg
 		prog.LastOutputTime = now
 	} else {
 		msg = fmt.Sprintf("%s%s", prog.RemainingTimeStr, msg)
