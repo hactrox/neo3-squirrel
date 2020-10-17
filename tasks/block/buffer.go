@@ -8,6 +8,9 @@ import (
 // Buffer is used to temporarily buffer fetched blocks.
 type Buffer struct {
 	mu sync.Mutex
+
+	// minHeight indicates the lowest block height.
+	minHeight int
 	// maxHeight indicates the highest existing height.
 	maxHeight int
 	// nextHeight indicates the next block height to fetch,
@@ -19,6 +22,7 @@ type Buffer struct {
 // NewBuffer inits a new block buffer.
 func NewBuffer(height int) Buffer {
 	return Buffer{
+		minHeight:  height,
 		maxHeight:  height,
 		nextHeight: height,
 		buffer:     make(map[int]*rpc.Block),
@@ -32,6 +36,11 @@ func (b *Buffer) Pop(index int) (*rpc.Block, bool) {
 
 	if block, ok := b.buffer[index]; ok {
 		delete(b.buffer, index)
+
+		if b.minHeight < int(block.Index) {
+			b.minHeight = int(block.Index)
+		}
+
 		return block, true
 	}
 	return nil, false
@@ -58,6 +67,10 @@ func (b *Buffer) GetNextPending() int {
 func (b *Buffer) Put(block *rpc.Block) {
 	b.mu.Lock()
 	defer b.mu.Unlock()
+
+	if int(block.Index) < b.minHeight {
+		return
+	}
 
 	b.buffer[int(block.Index)] = block
 	if b.maxHeight < int(block.Index) {
