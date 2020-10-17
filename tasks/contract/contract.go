@@ -30,6 +30,13 @@ func fetchContractStates(fromBlockIndex uint) {
 		l := len(contractStates)
 		if l == 0 {
 			time.Sleep(1 * time.Second)
+
+			rpcBestIndex := rpc.GetBestHeight()
+			for rpcBestIndex >= 0 && rpcBestIndex < int(fromBlockIndex) {
+				time.Sleep(100 * time.Millisecond)
+				rpcBestIndex = rpc.GetBestHeight()
+			}
+
 			continue
 		}
 
