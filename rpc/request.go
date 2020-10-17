@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"errors"
 	"fmt"
-	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/log"
 	"strings"
 	"time"
@@ -90,20 +89,8 @@ func request(minHeight uint, params string, target interface{}) {
 				return
 			}
 
-			if strings.Contains(params, `"getblock"`) {
-				// Exceed the highest block index, return nil.
-				reqLock.RUnlock()
-				return
-			}
-
-			delay := 1
-			msg := fmt.Sprintf("All fullnodes lower than height %d. ", minHeight)
-			msg += fmt.Sprintf("Retry request after %d seconds", delay)
-			log.Warn(color.Yellowf(msg))
-
-			time.Sleep(time.Duration(delay) * time.Second)
-			GetStatus()
-			continue
+			reqLock.RUnlock()
+			return
 		}
 
 		req.SetRequestURI(url)
