@@ -79,7 +79,7 @@ func getLastAppLog(trigger models.AppLogTrigger) *models.ApplicationLog {
 
 	query = append(query, "ORDER BY `id` DESC", "LIMIT 1")
 
-	return getApplicatoinLogQuery(mysql.Compose(query))
+	return getAppLogQueryRow(query)
 }
 
 // GetApplicationLogByID returns application log by primary key.
@@ -91,7 +91,7 @@ func GetApplicationLogByID(pk uint) *models.ApplicationLog {
 		"LIMIT 1",
 	}
 
-	return getApplicatoinLogQuery(mysql.Compose(query))
+	return getAppLogQueryRow(query)
 }
 
 // GetApplicationLogByTxID returns application log by txID.
@@ -103,68 +103,7 @@ func GetApplicationLogByTxID(txID string) *models.ApplicationLog {
 		"LIMIT 1",
 	}
 
-	return getApplicatoinLogQuery(mysql.Compose(query))
-}
-
-func getApplicatoinLogQuery(query string) *models.ApplicationLog {
-	appLog := models.ApplicationLog{}
-	var gasConsumed string
-	var notifications uint
-	var stack []byte
-
-	err := mysql.QueryRow(query, nil,
-		&appLog.ID,
-		&appLog.BlockIndex,
-		&appLog.BlockTime,
-		&appLog.TxID,
-		&appLog.Trigger,
-		&appLog.VMState,
-		&gasConsumed,
-		&stack,
-		&notifications,
-	)
-	if err != nil {
-		if mysql.IsRecordNotFoundError(err) {
-			return nil
-		}
-
-		log.Error(query)
-		log.Panic(err)
-	}
-
-	appLog.GasConsumed = convert.ToDecimal(gasConsumed)
-	appLog.UnmarshalStack(stack)
-
-	return &appLog
-}
-
-func getAppLogNotiQueryRow(query []string) *models.Notification {
-	var noti models.Notification
-	state := []byte{}
-
-	err := mysql.QueryRow(mysql.Compose(query), nil,
-		&noti.ID,
-		&noti.BlockIndex,
-		&noti.BlockTime,
-		&noti.TxID,
-		&noti.N,
-		&noti.Trigger,
-		&noti.VMState,
-		&noti.Contract,
-		&noti.EventName,
-		&state,
-	)
-	if err != nil {
-		if mysql.IsRecordNotFoundError(err) {
-			return nil
-		}
-
-		log.Error(mysql.Compose(query))
-		log.Panic(err)
-	}
-
-	noti.UnmarshalState(state)
-	return &noti
+	return getAppLogQueryRow(query)
 }
 
 // GetLastNotiForNEP5Task returns the last notification
@@ -214,41 +153,7 @@ func GetGroupedAppLogNotifications(appLogPK, limit uint) []*models.Notification 
 		fmt.Sprintf("WHERE `txid` IN (%s)", mysql.Compose(subQuery)),
 	}
 
-	rows, err := mysql.Query(mysql.Compose(query))
-	if err != nil {
-		log.Error(mysql.Compose(query))
-		log.Panic(err)
-	}
-
-	defer rows.Close()
-	notifications := []*models.Notification{}
-
-	for rows.Next() {
-		var noti models.Notification
-		state := []byte{}
-
-		err := rows.Scan(
-			&noti.ID,
-			&noti.BlockIndex,
-			&noti.BlockTime,
-			&noti.TxID,
-			&noti.N,
-			&noti.Trigger,
-			&noti.VMState,
-			&noti.Contract,
-			&noti.EventName,
-			&state,
-		)
-		if err != nil {
-			log.Panic(err)
-		}
-
-		noti.UnmarshalState(state)
-
-		notifications = append(notifications, &noti)
-	}
-
-	return notifications
+	return getAppLogNotiQuery(query)
 }
 
 // GetAppLogNotifications gets application log notifications starts from
@@ -261,41 +166,7 @@ func GetAppLogNotifications(startPK, limit uint) []*models.Notification {
 		fmt.Sprintf("LIMIT %d", limit),
 	}
 
-	rows, err := mysql.Query(mysql.Compose(query))
-	if err != nil {
-		log.Error(mysql.Compose(query))
-		log.Panic(err)
-	}
-
-	defer rows.Close()
-	notifications := []*models.Notification{}
-
-	for rows.Next() {
-		var noti models.Notification
-		state := []byte{}
-
-		err := rows.Scan(
-			&noti.ID,
-			&noti.BlockIndex,
-			&noti.BlockTime,
-			&noti.TxID,
-			&noti.N,
-			&noti.Trigger,
-			&noti.VMState,
-			&noti.Contract,
-			&noti.EventName,
-			&state,
-		)
-		if err != nil {
-			log.Panic(err)
-		}
-
-		noti.UnmarshalState(state)
-
-		notifications = append(notifications, &noti)
-	}
-
-	return notifications
+	return getAppLogNotiQuery(query)
 }
 
 // GetNotificationCount returns the number of notifications
@@ -386,4 +257,107 @@ func insertAppLogNotifications(sqlTx *sql.Tx, notifications []models.Notificatio
 	}
 
 	return err
+}
+
+/* ------------------------------
+	DB query result parser
+------------------------------ */
+
+func getAppLogQueryRow(query []string) *models.ApplicationLog {
+	appLog := models.ApplicationLog{}
+	var gasConsumed string
+	var notifications uint
+	var stack []byte
+
+	err := mysql.QueryRow(mysql.Compose(query), nil,
+		&appLog.ID,
+		&appLog.BlockIndex,
+		&appLog.BlockTime,
+		&appLog.TxID,
+		&appLog.Trigger,
+		&appLog.VMState,
+		&gasConsumed,
+		&stack,
+		&notifications,
+	)
+	if err != nil {
+		if mysql.IsRecordNotFoundError(err) {
+			return nil
+		}
+
+		log.Error(query)
+		log.Panic(err)
+	}
+
+	appLog.GasConsumed = convert.ToDecimal(gasConsumed)
+	appLog.UnmarshalStack(stack)
+
+	return &appLog
+}
+
+func getAppLogNotiQueryRow(query []string) *models.Notification {
+	var noti models.Notification
+	state := []byte{}
+
+	err := mysql.QueryRow(mysql.Compose(query), nil,
+		&noti.ID,
+		&noti.BlockIndex,
+		&noti.BlockTime,
+		&noti.TxID,
+		&noti.N,
+		&noti.Trigger,
+		&noti.VMState,
+		&noti.Contract,
+		&noti.EventName,
+		&state,
+	)
+	if err != nil {
+		if mysql.IsRecordNotFoundError(err) {
+			return nil
+		}
+
+		log.Error(mysql.Compose(query))
+		log.Panic(err)
+	}
+
+	noti.UnmarshalState(state)
+	return &noti
+}
+
+func getAppLogNotiQuery(query []string) []*models.Notification {
+	rows, err := mysql.Query(mysql.Compose(query))
+	if err != nil {
+		log.Error(mysql.Compose(query))
+		log.Panic(err)
+	}
+
+	defer rows.Close()
+	notifications := []*models.Notification{}
+
+	for rows.Next() {
+		var noti models.Notification
+		state := []byte{}
+
+		err := rows.Scan(
+			&noti.ID,
+			&noti.BlockIndex,
+			&noti.BlockTime,
+			&noti.TxID,
+			&noti.N,
+			&noti.Trigger,
+			&noti.VMState,
+			&noti.Contract,
+			&noti.EventName,
+			&state,
+		)
+		if err != nil {
+			log.Panic(err)
+		}
+
+		noti.UnmarshalState(state)
+
+		notifications = append(notifications, &noti)
+	}
+
+	return notifications
 }
