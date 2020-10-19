@@ -69,13 +69,13 @@ func updateAddressInfo(sqlTx *sql.Tx, delta map[string]*models.AddressInfo) erro
 	for _, addr := range addresses {
 		firstTxTime := delta[addr].FirstTxTime
 		lastTxTime := delta[addr].LastTxTime
-		transfersDelta := delta[addr].Transfers
+		newTransfers := delta[addr].Transfers
 
 		// The new address info should be inserted.
 		if firstTxTime == lastTxTime {
 			addrAdded++
 			insertionStrBuilder.WriteString(fmt.Sprintf(", ('%s', %d, %d, %d)",
-				addr, firstTxTime, lastTxTime, transfersDelta))
+				addr, firstTxTime, lastTxTime, newTransfers))
 			continue
 		}
 
@@ -83,7 +83,7 @@ func updateAddressInfo(sqlTx *sql.Tx, delta map[string]*models.AddressInfo) erro
 		updateSQL := []string{
 			"UPDATE `address`",
 			fmt.Sprintf("SET `last_tx_time` = %d", lastTxTime),
-			fmt.Sprintf(", `transfers` = `transfers` + %d", transfersDelta),
+			fmt.Sprintf(", `transfers` = `transfers` + %d", newTransfers),
 			fmt.Sprintf("WHERE `address` = '%s'", addr),
 			"LIMIT 1",
 		}
@@ -95,9 +95,12 @@ func updateAddressInfo(sqlTx *sql.Tx, delta map[string]*models.AddressInfo) erro
 	if insertionStrBuilder.Len() > 0 {
 		sql += fmt.Sprintf("INSERT INTO `address`(%s) VALUES ", strings.Join(addressInfoColumn[1:], ", "))
 		sql += insertionStrBuilder.String()[2:] + ";"
-
 	}
 	sql += updatesStrBuilder.String()
+
+	if len(sql) == 0 {
+		return nil
+	}
 
 	_, err := sqlTx.Exec(sql)
 	if err != nil {
