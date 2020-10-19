@@ -37,20 +37,27 @@ type config struct {
 var cfg config
 
 // Load creates a single
-func Load(display bool) {
+func Load(display bool, debug, debugSQL bool) {
 	viper.SetConfigName("config")
 	viper.AddConfigPath("./config")
 	// Incase test cases require loading configs
 	viper.AddConfigPath("../config")
 
-	if err := load(display); err != nil {
+	if err := load(); err != nil {
 		panic(err)
 	}
+
+	cfg.Debug = debug
+	cfg.DebugSQL = debugSQL
 
 	attachRPCHTTPScheme()
 
 	if err := validateConfig(); err != nil {
 		panic(err)
+	}
+
+	if display {
+		printConfig()
 	}
 }
 
@@ -106,7 +113,7 @@ func GetDBInfo() string {
          Utility Functions
 ------------------------------ */
 
-func load(display bool) error {
+func load() error {
 	err := viper.ReadInConfig()
 	if err != nil {
 		return err
@@ -117,22 +124,22 @@ func load(display bool) error {
 		return err
 	}
 
-	if display {
-		dbPass := cfg.Password
-		if len(dbPass) != 0 {
-			cfg.Password = "******"
-		}
+	return nil
+}
 
-		configContent, err := json.MarshalIndent(cfg, "", "    ")
-		if err != nil {
-			panic(err)
-		}
-
-		log.Println(string(configContent))
-		cfg.Password = dbPass
+func printConfig() {
+	dbPass := cfg.Password
+	if len(dbPass) != 0 {
+		cfg.Password = "******"
 	}
 
-	return nil
+	configContent, err := json.MarshalIndent(cfg, "", "    ")
+	if err != nil {
+		panic(err)
+	}
+
+	log.Println(string(configContent))
+	cfg.Password = dbPass
 }
 
 func attachRPCHTTPScheme() {

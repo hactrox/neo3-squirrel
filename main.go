@@ -10,17 +10,23 @@ import (
 	"net/http"
 )
 
-var pprofEnabled bool
-var pprofPort int
+var (
+	pprofEnabled bool
+	pprofPort    int
+	debug        bool
+	debugSQL     bool
+)
 
 func init() {
-	flag.BoolVar(&pprofEnabled, "pprof", false, "enable pprof")
 	flag.IntVar(&pprofPort, "p", 6060, "pprof port number")
+	flag.BoolVar(&pprofEnabled, "pprof", false, "enable pprof")
+	flag.BoolVar(&debug, "debug", false, "enable debug mode")
+	flag.BoolVar(&debugSQL, "debugsql", false, "enable sql debug mode")
 }
 
 func main() {
 	flag.Parse()
-	config.Load(true)
+	config.Load(true, debug, debugSQL)
 	log.Init(config.DebugMode())
 	log.SetPrefix(config.GetLabel())
 	db.Init()

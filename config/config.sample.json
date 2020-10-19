@@ -5,9 +5,6 @@
     "port": "3306",
     "database": "DATABASE",
 
-    "debug": false,
-    "debugSQL": false,
-
     "rpcs": [
         "RPC1"
     ],
