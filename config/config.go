@@ -97,6 +97,11 @@ func GetDbConnStr() string {
 	return str
 }
 
+// GetDBInfo returns the connecting DB info.
+func GetDBInfo() string {
+	return fmt.Sprintf("(%s:%s)/%s", cfg.Hostname, cfg.Port, cfg.Database)
+}
+
 /* ------------------------------
          Utility Functions
 ------------------------------ */
@@ -113,12 +118,18 @@ func load(display bool) error {
 	}
 
 	if display {
+		dbPass := cfg.Password
+		if len(dbPass) != 0 {
+			cfg.Password = "******"
+		}
+
 		configContent, err := json.MarshalIndent(cfg, "", "    ")
 		if err != nil {
 			panic(err)
 		}
 
 		log.Println(string(configContent))
+		cfg.Password = dbPass
 	}
 
 	return nil

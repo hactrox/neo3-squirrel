@@ -39,7 +39,7 @@ func Init() {
 		connStr += "?" + connCfg
 	}
 
-	log.Infof("Connect to db: [%s]", connStr)
+	log.Infof("Connect to db: %s", config.GetDBInfo())
 
 	db, err := sql.Open("mysql", connStr)
 	if err != nil || db.Ping() != nil {
