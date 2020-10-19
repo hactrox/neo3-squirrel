@@ -12,14 +12,14 @@ INSERT INTO `counter`(`id`, `block_index`, `addr_count`) VALUES(1, -1, 0);
 CREATE TABLE IF NOT EXISTS `block`
 (
     `id`                  INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `hash`                    CHAR(66)  NOT NULL,
+    `hash`                    CHAR(66)  NOT NULL UNIQUE,
     `size`                INT UNSIGNED  NOT NULL,
     `version`             INT UNSIGNED  NOT NULL,
     `previous_block_hash`     CHAR(66)  NOT NULL,
     `merkleroot`              CHAR(66)  NOT NULL,
     `txs`                 INT UNSIGNED  NOT NULL,
     `time`             BIGINT UNSIGNED  NOT NULL,
-    `index`               INT UNSIGNED  NOT NULL,
+    `index`               INT UNSIGNED  NOT NULL UNIQUE,
     `nextconsensus`           CHAR(66)  NOT NULL,
     `consensusdata_primary`   SMALLINT  NOT NULL,
     `consensusdata_nonce`  VARCHAR(16)  NOT NULL,
@@ -41,7 +41,7 @@ CREATE TABLE IF NOT EXISTS `transaction`
     `id`                 INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `block_index`        INT UNSIGNED  NOT NULL,
     `block_time`      BIGINT UNSIGNED  NOT NULL,
-    `hash`                   CHAR(66)  NOT NULL,
+    `hash`                   CHAR(66)  NOT NULL UNIQUE,
     `size`               INT UNSIGNED  NOT NULL,
     `version`            INT UNSIGNED  NOT NULL,
     `nonce`           BIGINT UNSIGNED  NOT NULL,
@@ -84,7 +84,7 @@ CREATE TABLE IF NOT EXISTS `applicationlog`
     `id`             INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `block_index`    INT UNSIGNED  NOT NULL,
     `block_time`  BIGINT UNSIGNED  NOT NULL,
-    `txid`               CHAR(66)  NOT NULL,
+    `txid`               CHAR(66)  NOT NULL UNIQUE,
     `trigger`         VARCHAR(16)  NOT NULL,
     `vmstate`          VARCHAR(8)  NOT NULL,
     `gasconsumed`  DECIMAL(24, 8)  NOT NULL,
@@ -121,7 +121,12 @@ CREATE TABLE IF NOT EXISTS `transfer`
     `from`                CHAR(34)  NOT NULL,
     `to`                  CHAR(34)  NOT NULL,
     `amount`       DECIMAL(65, 30)  NOT NULL,
-    `visible`             BOOLEAN   NOT NULL DEFAULT TRUE
+    `visible`             BOOLEAN   NOT NULL DEFAULT TRUE,
+
+    INDEX (`contract`),
+    INDEX (`txid`),
+    INDEX (`from`),
+    INDEX (`to`)
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
@@ -131,7 +136,10 @@ CREATE TABLE IF NOT EXISTS `addr_asset`
     `contract`        CHAR(42)  NOT NULL,
     `address`         CHAR(34)  NOT NULL,
     `balance`  DECIMAL(65, 30)  NOT NULL,
-    `transfers`   INT UNSIGNED  NOT NULL
+    `transfers`   INT UNSIGNED  NOT NULL,
+
+    INDEX (`contract`),
+    INDEX (`address`)
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
@@ -140,7 +148,7 @@ CREATE TABLE IF NOT EXISTS `asset`
     `id`               INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `block_index`      INT UNSIGNED  NOT NULL,
     `block_time`    BIGINT UNSIGNED  NOT NULL,
-    `contract`             CHAR(42)  NOT NULL,
+    `contract`             CHAR(42)  NOT NULL UNIQUE,
     `type`              VARCHAR(16)  NOT NULL,
     `name`              VARCHAR(64)  NOT NULL,
     `symbol`            VARCHAR(32)  NOT NULL,
@@ -153,7 +161,7 @@ CREATE TABLE IF NOT EXISTS `asset`
 CREATE TABLE IF NOT EXISTS `address`
 (
     `id`                INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `address`               CHAR(34)  NOT NULL,
+    `address`               CHAR(34)  NOT NULL UNIQUE,
     `first_tx_time`  BIGINT UNSIGNED  NOT NULL,
     `last_tx_time`   BIGINT UNSIGNED  NOT NULL,
     `transfers`         INT UNSIGNED  NOT NULL
@@ -166,7 +174,7 @@ CREATE TABLE IF NOT EXISTS `contract`
     `block_index`     INT UNSIGNED  NOT NULL,
     `block_time`   BIGINT UNSIGNED  NOT NULL,
     `txid`                CHAR(66)  NOT NULL,
-    `hash`                CHAR(42)  NOT NULL,
+    `hash`                CHAR(42)  NOT NULL UNIQUE,
     `state`               CHAR(16)  NOT NULL,
     `new_hash`            CHAR(42)  NOT NULL,
     `contract_id`              INT  NOT NULL,
