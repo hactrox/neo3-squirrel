@@ -99,11 +99,14 @@ CREATE TABLE IF NOT EXISTS `applicationlog_notification`
     `block_index`    INT UNSIGNED  NOT NULL,
     `block_time`  BIGINT UNSIGNED  NOT NULL,
     `txid`               CHAR(66)  NOT NULL,
+    `n`         SMALLINT UNSIGNED  NOT NULL,
     `trigger`         VARCHAR(16)  NOT NULL,
     `vmstate`          VARCHAR(8)  NOT NULL,
     `contract`           CHAR(42)  NOT NULL,
     `eventname`       VARCHAR(64)  NOT NULL,
-    `state`                  JSON  NOT NULL
+    `state`                  JSON  NOT NULL,
+
+    UNIQUE INDEX `uix_txid_n` (`txid`, `n`)
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
@@ -123,10 +126,10 @@ CREATE TABLE IF NOT EXISTS `transfer`
     `amount`       DECIMAL(65, 30)  NOT NULL,
     `visible`             BOOLEAN   NOT NULL DEFAULT TRUE,
 
-    INDEX (`contract`),
-    INDEX (`txid`),
-    INDEX (`from`),
-    INDEX (`to`)
+    INDEX `idx_contract` (`contract`),
+    INDEX `idx_txid` (`txid`),
+    INDEX `idx_from` (`from`),
+    INDEX `idx_to` (`to`)
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
@@ -138,8 +141,8 @@ CREATE TABLE IF NOT EXISTS `addr_asset`
     `balance`  DECIMAL(65, 30)  NOT NULL,
     `transfers`   INT UNSIGNED  NOT NULL,
 
-    INDEX (`contract`),
-    INDEX (`address`)
+    INDEX `idx_contract` (`contract`),
+    INDEX `idx_address` (`address`)
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 

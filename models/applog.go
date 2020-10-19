@@ -36,6 +36,7 @@ type Notification struct {
 	BlockIndex uint
 	BlockTime  uint64
 	TxID       string
+	N          uint
 	Trigger    string
 	VMState    string
 	Contract   string
@@ -120,11 +121,12 @@ func ParseApplicationLog(blockIndex uint, blockTime uint64, appLogResult *rpc.Ap
 		})
 	}
 
-	for _, notiResult := range appLogResult.Notifications {
+	for idx, notiResult := range appLogResult.Notifications {
 		noti := Notification{
 			BlockIndex: blockIndex,
 			BlockTime:  blockTime,
 			TxID:       appLogResult.TxID,
+			N:          uint(idx),
 			Trigger:    appLog.Trigger,
 			VMState:    appLogResult.VMState,
 			Contract:   notiResult.Contract,
