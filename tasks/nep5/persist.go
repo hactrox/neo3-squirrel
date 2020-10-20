@@ -51,16 +51,26 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 		if !ok {
 			continue
 		}
-		addrs := map[string]bool{}
+
+		addrs := []string{}
 		if len(transfer.From) > 0 {
-			addrs[transfer.From] = true
+			addrs = append(addrs, transfer.From)
 		}
-		if len(transfer.To) > 0 {
-			addrs[transfer.To] = true
+		if len(transfer.To) > 0 && transfer.To != transfer.From {
+			addrs = append(addrs, transfer.To)
+		}
+
+		if len(addrs) == 0 {
+			return
+		}
+
+		readableBalances, ok := util.QueryNEP5Balances(minBlockIndex, addrs, contract, decimals)
+		if !ok {
+			return
 		}
 
 		// Get contract balance of these addresses.
-		for addr := range addrs {
+		for idx, addr := range addrs {
 			// Filter this query if already queried.
 			if addrAsset, ok := addrTransfers[addr+contract]; ok {
 				addrAsset.Transfers++
@@ -69,15 +79,10 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 
 			sleepIfGasConsumed(&slept, minBlockIndex, transfer.TxID, contract, addr)
 
-			balance, ok := util.QueryNEP5Balance(minBlockIndex, addr, contract, decimals)
-			if !ok {
-				continue
-			}
-
 			addrAsset := models.AddrAsset{
 				Address:   addr,
 				Contract:  contract,
-				Balance:   balance,
+				Balance:   readableBalances[idx],
 				Transfers: 1, // Number of transfers added.
 			}
 
@@ -162,7 +167,7 @@ func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {
 			continue
 		}
 
-		balance, ok := util.QueryNEP5Balance(noti.BlockIndex, addr, contract, decimals)
+		readableBalance, ok := util.QueryNEP5Balance(noti.BlockIndex, addr, contract, decimals)
 		if !ok {
 			continue
 		}
@@ -170,7 +175,7 @@ func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {
 		addrAssets = append(addrAssets, &models.AddrAsset{
 			Address:   addr,
 			Contract:  contract,
-			Balance:   balance,
+			Balance:   readableBalance,
 			Transfers: 0,
 		})
 	}

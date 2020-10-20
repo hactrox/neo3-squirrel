@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"neo3-squirrel/cache/asset"
 	"neo3-squirrel/cache/gas"
+	"neo3-squirrel/config"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
@@ -185,13 +186,13 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 
 	// Parse Transfer Info.
 	stackItems := noti.State.Value
-	from, to, amount, ok := util.ExtractNEP5Transfer(stackItems)
+	from, to, rawAmount, ok := util.ExtractNEP5Transfer(stackItems)
 	if !ok {
 		log.Debug("Failed to extract NEP5 transfer parameters")
 		return nil
 	}
 
-	readableAmount := convert.AmountReadable(amount, decimals)
+	readableAmount := convert.AmountReadable(rawAmount, decimals)
 
 	transfer := models.Transfer{
 		BlockIndex: noti.BlockIndex,
@@ -202,6 +203,11 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 		From:       from,
 		To:         to,
 		Amount:     readableAmount,
+	}
+
+	if readableAmount.Cmp(config.MaxVal) > 0 {
+		log.Errorf("NEP5 transfer amount exceed, transfer skipped: %v", transfer)
+		return nil
 	}
 
 	// log.Debug("New NEP5 transfer parsed")
@@ -227,6 +233,10 @@ func queryNEP5AssetInfo(noti *models.Notification, contract string) *models.Asse
 
 	if contract == models.GAS && bestBlockIndex > 0 {
 		gas.CacheGASTotalSupply(uint(bestBlockIndex), asset.TotalSupply)
+	}
+
+	if asset.TotalSupply != nil && asset.TotalSupply.Cmp(config.MaxVal) > 0 {
+		log.Errorf("Asset total supply , asset skipped: %v", asset)
 	}
 
 	return &asset

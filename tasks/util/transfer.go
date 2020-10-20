@@ -6,7 +6,7 @@ import (
 )
 
 // ExtractNEP5Transfer extracts NEP5 transfer stack items into readable variables.
-func ExtractNEP5Transfer(stackItems []models.StackItem) (from string, to string, amount *big.Float, ok bool) {
+func ExtractNEP5Transfer(stackItems []models.StackItem) (from string, to string, rawAmount *big.Float, ok bool) {
 	from, ok = extractAddress(stackItems[0])
 	if !ok {
 		return
@@ -15,6 +15,6 @@ func ExtractNEP5Transfer(stackItems []models.StackItem) (from string, to string,
 	if !ok {
 		return
 	}
-	amount, ok = extractValue(stackItems[2])
+	rawAmount, ok = extractValue(stackItems[2])
 	return
 }

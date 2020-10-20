@@ -9,7 +9,7 @@ import (
 )
 
 // GetAddrScriptHash returns script hash of an address.
-// E.g., NTdkuNTx38tQk3a5rnV9HPT96zqFHCb97h -> 0xb3f1f587042a20dd0eef2e47f137504f1419b054
+// E.g., NTdkuNTx38tQk3a5rnV9HPT96zqFHCb97h -> b3f1f587042a20dd0eef2e47f137504f1419b054
 func GetAddrScriptHash(address string) string {
 	bytes, err := base58.CheckDecode(address)
 	if err != nil {
@@ -29,7 +29,6 @@ func ExtractAddressFromByteString(byteString string) (string, bool) {
 
 	bytes = append([]byte{0x35}, bytes...)
 	return base58.CheckEncode(bytes), true
-
 }
 
 // GetAddressFromPublicKeyBase64 calcluates address from base64 encoded public key.
