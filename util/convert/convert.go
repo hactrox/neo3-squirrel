@@ -56,7 +56,7 @@ func BigFloatToString(value *big.Float) string {
 		return ""
 	}
 
-	valueStr := value.Text('f', 64)
+	valueStr := value.Text('f', 32)
 	valueStr = strings.TrimRight(valueStr, "0")
 	valueStr = strings.TrimSuffix(valueStr, ".")
 
