@@ -50,6 +50,14 @@ type ContractState struct {
 	TotalSupply *big.Float  `json:"totalSupply"`
 }
 
+// InvokeScript reflects the rpc call 'invokescript'.
+func InvokeScript(minBlockIndex uint, script string) *InvokeFunctionResult {
+	const method = "invokescript"
+	params := []interface{}{script}
+
+	return doInvoke(minBlockIndex, method, params)
+}
+
 // InvokeFunction reflects the rpc call 'invokefunction'.
 func InvokeFunction(minBlockIndex uint, contract, invokeFunc string, parameters []interface{}) *InvokeFunctionResult {
 	const method = "invokefunction"
@@ -58,6 +66,10 @@ func InvokeFunction(minBlockIndex uint, contract, invokeFunc string, parameters 
 		params = append(params, parameters...)
 	}
 
+	return doInvoke(minBlockIndex, method, params)
+}
+
+func doInvoke(minBlockIndex uint, method string, params []interface{}) *InvokeFunctionResult {
 	args := generateRequestBody(method, params)
 	resp := InvokefunctionResponse{}
 	retryCnt := uint(0)
@@ -78,7 +90,7 @@ func InvokeFunction(minBlockIndex uint, contract, invokeFunc string, parameters 
 			delay = rand.Intn(1<<retryCnt) + 1000
 		}
 
-		log.Warnf("Failed to invoke smartcontract func %s of contract %s. Delay for %d msecs and retry(retry=%d).", invokeFunc, contract, delay, retryCnt)
+		log.Warnf("Failed to invoke smartcontract: %v. Delay for %d msecs and retry(retry=%d).", args, delay, retryCnt)
 
 		time.Sleep(time.Duration(delay) * time.Millisecond)
 	}
