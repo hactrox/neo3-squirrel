@@ -99,7 +99,7 @@ func generateNEP5BalanceOfScript(address, contract string) (string, error) {
 	}
 
 	if len(addrBytes) < 21 {
-		err := fmt.Errorf("Invalid address: %s", address)
+		err := fmt.Errorf("invalid address: %s", address)
 		log.Error(err)
 		return "", err
 	}
