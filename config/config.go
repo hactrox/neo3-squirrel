@@ -5,12 +5,17 @@ import (
 	"errors"
 	"fmt"
 	"log"
+	"math/big"
+	"neo3-squirrel/util/convert"
 	"net"
 	"net/url"
 	"strings"
 
 	"github.com/spf13/viper"
 )
+
+// MaxVal defines the maximum db decimal storage limitation.
+var MaxVal *big.Float
 
 type config struct {
 	// MySQL configs.
@@ -59,6 +64,8 @@ func Load(display bool, debug, debugSQL bool) {
 	if display {
 		printConfig()
 	}
+
+	MaxVal = convert.ToDecimal(fmt.Sprintf("%s.%s", strings.Repeat("9", 35), strings.Repeat("9", 30)))
 }
 
 /* ------------------------------
