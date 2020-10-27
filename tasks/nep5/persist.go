@@ -77,7 +77,7 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 				continue
 			}
 
-			sleepIfGasConsumed(&slept, minBlockIndex, transfer.TxID, contract, addr)
+			sleepIfGasConsumed(&slept, minBlockIndex, transfer, contract, addr)
 
 			addrAsset := models.AddrAsset{
 				Address:   addr,
@@ -105,9 +105,17 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 	}
 }
 
-func sleepIfGasConsumed(slept *bool, minBlockIndex uint, txID, contract, addr string) {
+func sleepIfGasConsumed(slept *bool, minBlockIndex uint, transfer *models.Transfer, contract, addr string) {
+	txID := transfer.TxID
+
 	if *slept || contract != models.GAS ||
 		int(minBlockIndex) != rpc.GetBestHeight() {
+		return
+	}
+
+	if transfer.Src == "block" {
+		time.Sleep(1 * time.Second)
+		*slept = true
 		return
 	}
 
