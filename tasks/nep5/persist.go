@@ -34,7 +34,6 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 	}
 
 	addrAssets := []*models.AddrAsset{}
-	addrTransfers := make(map[string]*models.AddrAsset)
 
 	// There may be a time gap between
 	// GAS balance updates and transaction gas fee deduction,
@@ -69,10 +68,12 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 			return
 		}
 
+		addrAssetBalanceCache := make(map[string]*models.AddrAsset)
+
 		// Get contract balance of these addresses.
 		for idx, addr := range addrs {
 			// Filter this query if already queried.
-			if addrAsset, ok := addrTransfers[addr+contract]; ok {
+			if addrAsset, ok := addrAssetBalanceCache[addr+contract]; ok {
 				addrAsset.Transfers++
 				continue
 			}
@@ -87,7 +88,7 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 			}
 
 			addrAssets = append(addrAssets, &addrAsset)
-			addrTransfers[addr+contract] = &addrAsset
+			addrAssetBalanceCache[addr+contract] = &addrAsset
 		}
 	}
 
