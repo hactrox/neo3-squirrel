@@ -20,26 +20,22 @@ func showTransfers(transfers []*models.Transfer) {
 			log.Panicf("Failed to get asset info of contract %s", contractHash)
 		}
 
-		symbol := contract.Symbol
 		msg := ""
-		amountStr := convert.BigFloatToString(amount)
+		symbol := contract.Symbol
+		amountWithUnit := fmt.Sprintf("%s %s", convert.BigFloatToString(amount), symbol)
 
 		if len(from) == 0 {
 			// Claim GAS.
 			if contractHash == models.GAS {
-				msg = fmt.Sprintf("   GAS claimed: %s get %s %s", to, amountStr, symbol)
-				msg = color.Green(msg)
+				msg = color.Greenf("   GAS claimed: %s + %s", to, amountWithUnit)
 			} else {
-				msg = fmt.Sprintf("  Token minted: %s get %s %s", to, amountStr, symbol)
-				msg = color.LightGreen(msg)
+				msg = color.LightGreenf("  Token minted: %s + %s", to, amountWithUnit)
 			}
 		} else {
 			if len(to) == 0 {
-				msg = fmt.Sprintf(" Destroy token: %s lost %s %s", from, amountStr, symbol)
-				msg = color.LightPurple(msg)
+				msg = color.LightPurplef(" Destroy token: %s - %s", from, amountWithUnit)
 			} else {
-				msg = fmt.Sprintf("Token transfer: %s -> %s, amount %s %s", from, to, amountStr, symbol)
-				msg = color.LightCyan(msg)
+				msg = color.LightCyanf("Token transfer: %s -> %s, amount %s", from, to, amountWithUnit)
 			}
 		}
 

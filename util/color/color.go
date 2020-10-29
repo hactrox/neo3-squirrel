@@ -113,6 +113,12 @@ func LightGreen(txt string) string {
 	return Render(lightGreen, normal, txt)
 }
 
+// LightGreenf text
+func LightGreenf(format string, a ...interface{}) string {
+	msg := fmt.Sprintf(format, a...)
+	return LightGreen(msg)
+}
+
 // LightYellow text
 func LightYellow(txt string) string {
 	return Render(lightYellow, normal, txt)
@@ -126,6 +132,12 @@ func LightBlue(txt string) string {
 // LightPurple text
 func LightPurple(txt string) string {
 	return Render(lightPurple, normal, txt)
+}
+
+// LightPurplef text
+func LightPurplef(format string, a ...interface{}) string {
+	msg := fmt.Sprintf(format, a...)
+	return LightPurple(msg)
 }
 
 // LightCyan text
