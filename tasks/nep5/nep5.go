@@ -25,7 +25,7 @@ var (
 )
 
 type notiTransfer struct {
-	PK         uint
+	PKs        []uint
 	TxID       string
 	BlockIndex uint
 	transfers  []*models.Transfer
@@ -116,19 +116,26 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 		}
 
 		for _, notis := range notiArrays {
-			noti := notis[0]
+			// txID and blockIndex are the same across these grouped notis,
+			// so get them from the first noti.
+			txID := notis[0].TxID
 			blockIndex := notis[0].BlockIndex
 
 			txTransfers := notiTransfer{
-				PK:         noti.ID,
-				TxID:       noti.TxID,
+				TxID:       txID,
 				BlockIndex: blockIndex,
 			}
 
 			for _, noti := range notis {
-				switch strings.ToLower(noti.EventName) {
+				txTransfers.PKs = append(txTransfers.PKs, noti.ID)
+			}
+
+			for _, noti := range notis {
+				eventName := noti.EventName
+
+				switch strings.ToLower(eventName) {
 				case "transfer":
-					log.Debugf("New NEP5 transfer event detected: %s", noti.TxID)
+					log.Debugf("New NEP5 transfer event detected: %s", txID)
 					transfer := parseNEP5Transfer(noti)
 					if transfer != nil {
 						txTransfers.transfers = append(txTransfers.transfers, transfer)
@@ -136,7 +143,7 @@ func fetchNotifications(lastNotiTxID string, transferChan chan<- *notiTransfer) 
 				default:
 					// Detect if has address parameter, if true, check if has balance.
 					if !persistExtraAddrBalancesIfExists(noti) {
-						log.Info("Notification in tx %s not parsed. EventName=%s", noti.TxID, noti.EventName)
+						log.Info("Notification in tx %s not parsed. EventName=%s", txID, eventName)
 					}
 				}
 			}

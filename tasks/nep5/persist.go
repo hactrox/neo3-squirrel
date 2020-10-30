@@ -24,7 +24,7 @@ func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
 		}
 
 		processNEP5Transfers(txTransfers)
-		LastTxPK = txTransfers.PK
+		LastTxPK = txTransfers.PKs[len(txTransfers.PKs)-1]
 	}
 }
 

@@ -120,6 +120,7 @@ func GetLastNotiForNEP5Task() *models.Notification {
 		fmt.Sprintf("SELECT %s", strings.Join(appLogNotiColumns, ", ")),
 		"FROM `applicationlog_notification`",
 		fmt.Sprintf("WHERE `txid` = (%s)", mysql.Compose(subQuery)),
+		"ORDER BY `id` DESC",
 		"LIMIT 1",
 	}
 
