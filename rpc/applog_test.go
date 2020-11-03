@@ -18,6 +18,10 @@ func TestGetApplicationLog(t *testing.T) {
 		os.RemoveAll("./logs")
 	}()
 
+	if bestHeight.Get() < 0 {
+		t.Skip("No upstream fullnode available, test skipped")
+	}
+
 	// Get transactions of block index 0.
 	block := SyncBlock(0)
 	if block == nil {
