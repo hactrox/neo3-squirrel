@@ -170,4 +170,33 @@ SELECT 'check NEO & GAS transfers total amount balance', IF(
         ON `addr_asset`.`address`=aa.`addr` AND `addr_asset`.`contract`=`aa`.`contract`
         WHERE `addr_asset`.`balance` != `aa`.`balance`
     )
+, 'PASS', 'FAIL')
+
+UNION  ALL
+
+SELECT 'check asset addresses', IF(
+    !EXISTS(
+        SELECT * FROM (
+            SELECT `contract`, COUNT(`address`) addresses
+            FROM `addr_asset`
+            WHERE `balance` > 0
+            GROUP BY `contract`
+        ) a LEFT JOIN `asset`
+        ON a.`contract` = `asset`.contract
+        WHERE a.addresses != `asset`.addresses
+    )
+, 'PASS', 'FAIL')
+
+UNION ALL
+
+SELECT 'check asset transfers', IF(
+    !EXISTS(
+        SELECT * FROM (
+            SELECT `contract`, COUNT(id) transfers
+            FROM `transfer`
+            GROUP BY `contract`
+        ) a LEFT JOIN `asset`
+        ON a.`contract` = `asset`.contract
+        WHERE a.transfers != `asset`.transfers
+    )
 , 'PASS', 'FAIL');
