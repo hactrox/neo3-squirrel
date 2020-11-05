@@ -24,14 +24,6 @@ var transferColumns = []string{
 	"`amount`",
 }
 
-var addrAssetColumns = []string{
-	"`id`",
-	"`contract`",
-	"`address`",
-	"`balance`",
-	"`transfers`",
-}
-
 // InsertNEP5Transfers inserts NEP5 transfers of a transactions into DB.
 func InsertNEP5Transfers(transfers []*models.Transfer,
 	addrAssets []*models.AddrAsset,
@@ -40,6 +32,11 @@ func InsertNEP5Transfers(transfers []*models.Transfer,
 	mysql.Trans(func(sqlTx *sql.Tx) error {
 		// Insert NEP5 transfers.
 		if err := insertNEP5Transfer(sqlTx, transfers); err != nil {
+			return err
+		}
+
+		// Update asset addresses & transfers column.
+		if err := updateAssetAddressesTransfers(sqlTx, addrAssets, transfers); err != nil {
 			return err
 		}
 
@@ -72,6 +69,75 @@ func PersistNEP5Balances(addrAssets []*models.AddrAsset) {
 		updateNEP5Balances(sqlTx, addrAssets)
 		return nil
 	})
+}
+
+func updateAssetAddressesTransfers(sqlTx *sql.Tx, addrAssets []*models.AddrAsset, transfers []*models.Transfer) error {
+	if len(transfers) == 0 {
+		return nil
+	}
+
+	addressesChangeDelta := make(map[string]int) // map[contract]delta
+	transfersChangeDelta := make(map[string]int) // map[contract]delta
+
+	// Calculate contract holding addresses change.
+	for _, addrAsset := range addrAssets {
+		contract := addrAsset.Contract
+		address := addrAsset.Address
+		balance := addrAsset.Balance
+
+		originBalance := GetAddrAssetBalance(address, contract)
+
+		zero := convert.Zero
+		// New address holding this asset. addresses += 1
+		if originBalance.Cmp(zero) == 0 && balance.Cmp(zero) > 0 {
+			addressesChangeDelta[contract] += 1
+		} else if originBalance.Cmp(zero) > 0 && balance.Cmp(zero) == 0 {
+			addressesChangeDelta[contract] -= 1
+		}
+	}
+
+	// Calculate contract transfers change.
+	for _, transfer := range transfers {
+		contract := transfer.Contract
+		transfersChangeDelta[contract]++
+	}
+
+	query := []string{}
+
+	// Persist contract holding addresses change.
+	for contract, delta := range addressesChangeDelta {
+		if delta == 0 {
+			continue
+		}
+
+		query = append(query, []string{
+			"UPDATE `asset`",
+			fmt.Sprintf("SET `addresses` = `addresses` + %d", delta),
+			fmt.Sprintf("WHERE `contract` = '%s'", contract),
+			"LIMIT 1;",
+		}...)
+	}
+
+	// Persist contract transfers change.
+	for contract, delta := range transfersChangeDelta {
+		if delta == 0 {
+			continue
+		}
+
+		query = append(query, []string{
+			"UPDATE `asset`",
+			fmt.Sprintf("SET `transfers` = `transfers` + %d", delta),
+			fmt.Sprintf("WHERE `contract` = '%s'", contract),
+			"LIMIT 1;",
+		}...)
+	}
+
+	_, err := sqlTx.Exec(mysql.Compose(query))
+	if err != nil {
+		log.Error(err)
+	}
+
+	return err
 }
 
 func insertNEP5Transfer(sqlTx *sql.Tx, transfers []*models.Transfer) error {

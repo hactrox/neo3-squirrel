@@ -157,6 +157,8 @@ CREATE TABLE IF NOT EXISTS `asset`
     `symbol`            VARCHAR(32)  NOT NULL,
     `decimals`     TINYINT UNSIGNED  NOT NULL,
     `total_supply`  DECIMAL(65, 30)  NOT NULL,
+    `addresses`        INT UNSIGNED  NOT NULL,
+    `transfers`        INT UNSIGNED  NOT NULL,
     `destroyed`             BOOLEAN  NOT NULL DEFAULT FALSE
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 

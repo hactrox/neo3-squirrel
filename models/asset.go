@@ -21,6 +21,8 @@ type Asset struct {
 	Decimals    uint
 	Type        string
 	TotalSupply *big.Float
+	Addresses   uint
+	Transfers   uint
 	// Destroyed   bool
 }
 

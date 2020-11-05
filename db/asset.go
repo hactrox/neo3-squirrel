@@ -3,6 +3,7 @@ package db
 import (
 	"database/sql"
 	"fmt"
+	"math/big"
 	"neo3-squirrel/models"
 	"neo3-squirrel/pkg/mysql"
 	"neo3-squirrel/util/convert"
@@ -20,6 +21,16 @@ var assetColumns = []string{
 	"`decimals`",
 	"`type`",
 	"`total_supply`",
+	"`addresses`",
+	"`transfers`",
+}
+
+var addrAssetColumns = []string{
+	"`id`",
+	"`contract`",
+	"`address`",
+	"`balance`",
+	"`transfers`",
 }
 
 // GetAllAssets returns all asset of the given type from DB.
@@ -56,6 +67,8 @@ func GetAllAssets(typ string) []*models.Asset {
 			&asset.Decimals,
 			&asset.Type,
 			&totalSupplyStr,
+			&asset.Addresses,
+			&asset.Transfers,
 		)
 		if err != nil {
 			log.Panic(err)
@@ -67,6 +80,28 @@ func GetAllAssets(typ string) []*models.Asset {
 	}
 
 	return assets
+}
+
+func GetAddrAssetBalance(addr, contract string) *big.Float {
+	query := []string{
+		"SELECT `balance`",
+		"FROM `addr_asset`",
+		fmt.Sprintf("WHERE `address`='%s' AND `contract`='%s'", addr, contract),
+		"LIMIT 1",
+	}
+
+	var balanceStr string
+	err := mysql.QueryRow(mysql.Compose(query), nil, &balanceStr)
+	if err != nil {
+		if mysql.IsRecordNotFoundError(err) {
+			return convert.Zero
+		}
+
+		log.Error(mysql.Compose(query))
+		log.Panic(err)
+	}
+
+	return convert.ToDecimal(balanceStr)
 }
 
 // InsertNewAsset persists new asset into DB.
@@ -126,6 +161,8 @@ func insertNewAsset(sqlTx *sql.Tx, asset *models.Asset) error {
 		asset.Decimals,
 		asset.Type,
 		convert.BigFloatToString(asset.TotalSupply),
+		asset.Addresses,
+		asset.Transfers,
 	}
 
 	result, err := sqlTx.Exec(mysql.Compose(query), args...)
