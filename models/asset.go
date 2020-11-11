@@ -15,6 +15,7 @@ type Asset struct {
 	ID          uint
 	BlockIndex  uint
 	BlockTime   uint64
+	TxID        string
 	Contract    string
 	Name        string
 	Symbol      string

@@ -84,6 +84,7 @@ func updateIfNEP5(c *models.ContractState) {
 		nep5 := &models.Asset{
 			BlockIndex:  c.BlockIndex,
 			BlockTime:   c.BlockTime,
+			TxID:        c.TxID,
 			Contract:    c.Hash,
 			Name:        c.Name,
 			Symbol:      c.Symbol,

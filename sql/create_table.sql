@@ -151,6 +151,7 @@ CREATE TABLE IF NOT EXISTS `asset`
     `id`               INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `block_index`      INT UNSIGNED  NOT NULL,
     `block_time`    BIGINT UNSIGNED  NOT NULL,
+    `txid`                 CHAR(66)  NOT NULL,
     `contract`             CHAR(42)  NOT NULL UNIQUE,
     `type`              VARCHAR(16)  NOT NULL,
     `name`              VARCHAR(64)  NOT NULL,

@@ -15,6 +15,7 @@ var assetColumns = []string{
 	"`id`",
 	"`block_index`",
 	"`block_time`",
+	"`txid`",
 	"`contract`",
 	"`name`",
 	"`symbol`",
@@ -61,6 +62,7 @@ func GetAllAssets(typ string) []*models.Asset {
 			&asset.ID,
 			&asset.BlockIndex,
 			&asset.BlockTime,
+			&asset.TxID,
 			&asset.Contract,
 			&asset.Name,
 			&asset.Symbol,
@@ -155,6 +157,7 @@ func insertNewAsset(sqlTx *sql.Tx, asset *models.Asset) error {
 	args := []interface{}{
 		asset.BlockIndex,
 		asset.BlockTime,
+		asset.TxID,
 		asset.Contract,
 		asset.Name,
 		asset.Symbol,

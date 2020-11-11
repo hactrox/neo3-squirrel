@@ -226,6 +226,7 @@ func queryNEP5AssetInfo(noti *models.Notification, contract string) *models.Asse
 	asset := models.Asset{
 		BlockIndex: minBlockIndex,
 		BlockTime:  noti.BlockTime,
+		TxID:       noti.TxID,
 		Contract:   contract,
 		Type:       "nep5",
 	}
