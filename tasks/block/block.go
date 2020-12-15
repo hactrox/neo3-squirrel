@@ -128,12 +128,12 @@ func waiting(waited *int, nextHeight int) {
 	msg += fmt.Sprintf(" (%s)", timeutil.ParseSeconds(uint64(*waited)))
 
 	rpcBestHeight := rpc.GetBestHeight()
-	if rpcBestHeight < nextHeight-1 {
+	if rpcBestHeight < nextHeight-1 && rpcBestHeight != -1 {
 		lag := nextHeight - rpcBestHeight
 		msg += color.Red(fmt.Sprintf(" (rpcBestHeight=%d, %d blocks behind)", rpcBestHeight, lag))
 	}
 
-	if prog.Finished || rpcBestHeight < nextHeight-1 {
+	if (prog.Finished || rpcBestHeight < nextHeight-1) && !rpc.AllFullnodesDown() {
 		log.Infof(msg)
 	}
 }
