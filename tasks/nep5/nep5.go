@@ -20,7 +20,7 @@ import (
 var (
 	chanSize = 8000
 
-	// LastTxPK if the last tx pk of persisted tx appLogs.
+	// LastTxPK is the last tx pk of persisted tx appLogs.
 	LastTxPK uint
 )
 
