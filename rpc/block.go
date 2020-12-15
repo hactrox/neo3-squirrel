@@ -1,7 +1,7 @@
 package rpc
 
-// BlockCountRespponse returns block height of chain.
-type BlockCountRespponse struct {
+// BlockCountResponse returns block height of chain.
+type BlockCountResponse struct {
 	responseCommon
 	Result int `json:"result"`
 }

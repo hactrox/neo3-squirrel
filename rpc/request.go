@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"neo3-squirrel/util/log"
 	"strings"
+	"sync"
 	"time"
 
 	eParser "github.com/go-errors/errors"
@@ -15,8 +16,9 @@ import (
 var (
 	client = &fasthttp.Client{
 		MaxConnWaitTimeout: 10 * time.Second,
-		MaxConnsPerHost:    20,
 	}
+
+	reqLock sync.RWMutex
 )
 
 type responseCommon struct {

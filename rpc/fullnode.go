@@ -18,7 +18,6 @@ import (
 var (
 	// map[host(string)]height(int)
 	nodeHeights  sync.Map
-	reqLock      sync.RWMutex
 	allNodesDown bool
 
 	bestHeight counter.SafeCounter
@@ -222,7 +221,7 @@ func getHeightFrom(url string) (int, error) {
 	req.SetBody([]byte(args))
 	req.SetRequestURI(url)
 
-	respData := BlockCountRespponse{}
+	respData := BlockCountResponse{}
 	err := client.Do(req, resp)
 	if err != nil {
 		// log.Debug(err)
