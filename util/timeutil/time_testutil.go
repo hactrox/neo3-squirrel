@@ -2,7 +2,7 @@ package timeutil
 
 import "testing"
 
-func Test(t *testing.T) {
+func TestParseSeconds(t *testing.T) {
 	testCases := map[uint64]string{
 		0:    "",
 		1:    "01s",
