@@ -101,7 +101,7 @@ func appendTxSigners(signers []*TransactionSigner, rawTx *rpc.Tx) []*Transaction
 	for _, rawSigner := range rawTx.Signers {
 		signer := TransactionSigner{
 			TransactionHash: rawTx.Hash,
-			Account:         rawSigner.Scopes,
+			Account:         rawSigner.Account,
 			Scopes:          rawSigner.Scopes,
 		}
 
