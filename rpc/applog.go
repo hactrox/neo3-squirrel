@@ -24,6 +24,7 @@ type ApplicationLogResult struct {
 type AppLogExecution struct {
 	Trigger       string         `json:"trigger"`
 	VMState       string         `json:"vmstate"`
+	Exception     string         `json:"exception"`
 	GasConsumed   *big.Float     `json:"gasconsumed"`
 	Stack         []StackItem    `json:"stack"`
 	Notifications []Notification `json:"notifications"`
