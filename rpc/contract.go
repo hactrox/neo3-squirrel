@@ -13,12 +13,6 @@ type InvokefunctionResponse struct {
 	Result *InvokeFunctionResult `json:"result"`
 }
 
-// ContractStatesResponse is the response structure of rpc call 'getcontractstates'.
-type ContractStatesResponse struct {
-	responseCommon
-	Result []*ContractState `json:"result"`
-}
-
 // InvokeFunctionResult represents invokefunction query result.
 type InvokeFunctionResult struct {
 	Script      string      `json:"script"`
@@ -34,20 +28,25 @@ type StackItem struct {
 	Value interface{} `json:"value"`
 }
 
+// ContractStatesResponse is the response structure of rpc call 'getcontractstates'.
+type ContractStatesResponse struct {
+	responseCommon
+	Result *ContractState `json:"result"`
+}
+
 // ContractState represents 'getcontractstates' query result.
 type ContractState struct {
-	ID          int         `json:"id"`
-	Hash        string      `json:"hash"`
-	Script      string      `json:"script"`
-	Manifest    interface{} `json:"manifest"`
-	BlockIndex  uint        `json:"blockindex"`
-	BlockTime   uint64      `json:"blocktime"`
-	State       string      `json:"state"`
-	TxID        string      `json:"txid"`
-	Name        string      `json:"name"`
-	Symbol      string      `json:"symbol"`
-	Decimals    uint        `json:"decimals"`
-	TotalSupply *big.Float  `json:"totalSupply"`
+	ID                 int         `json:"id"`
+	UpdateCounter      uint        `json:"updatecounter"`
+	Hash               string      `json:"hash"`
+	Script             string      `json:"script"`
+	Name               string      `json:"name"`
+	Groups             interface{} `json:"groups"`
+	SupportedStandards []string    `json:"supportedstandards"`
+	ABI                interface{} `json:"abi"`
+	Permissions        interface{} `json:"permissions"`
+	Trusts             interface{} `json:"trusts"`
+	Extra              interface{} `json:"extra"`
 }
 
 // InvokeScript reflects the rpc call 'invokescript'.
@@ -96,10 +95,10 @@ func doInvoke(minBlockIndex uint, method string, params []interface{}) *InvokeFu
 	}
 }
 
-// GetContractStates reflects the rpc call 'getcontractstates'.
-func GetContractStates(fromBlockIndex, batches uint) []*ContractState {
-	const method = "getcontractstates"
-	params := []interface{}{fromBlockIndex, batches}
+// GetContractState reflects the rpc call 'getcontractstate'.
+func GetContractState(fromBlockIndex uint, hash string) *ContractState {
+	const method = "getcontractstate"
+	params := []interface{}{hash}
 
 	args := generateRequestBody(method, params)
 	resp := ContractStatesResponse{}
