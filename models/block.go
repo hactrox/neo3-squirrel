@@ -27,6 +27,11 @@ func (block *Block) GetTxs() []*Transaction {
 	return block.txs
 }
 
+// SetTxs sets transactions for the current block.
+func (block *Block) SetTxs(txs []*Transaction) {
+	block.txs = txs
+}
+
 // ParseBlocks parses struct RawBlock to struct Block.
 func ParseBlocks(rawBlocks []*rpc.Block) []*Block {
 	blocks := []*Block{}
