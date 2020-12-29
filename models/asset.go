@@ -6,8 +6,8 @@ import (
 
 // NEO & GAS contract hash
 const (
-	NEO = "0xde5f57d430d3dece511cf975a8d37848cb9e0525"
-	GAS = "0x668e0c1f9d7b70a99dd9e06eadd4c784d641afbc"
+	NEO = "0x0a46e2e37c9987f570b4af253fb77e7eef0f72b6"
+	GAS = "0xa6a6c15dcdc9b997dac448b6926522d22efeedfb"
 )
 
 // Asset db model.
