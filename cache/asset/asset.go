@@ -6,59 +6,59 @@ import (
 )
 
 var (
-	nep5AssetMap = map[string]*models.Asset{}
-	mu           sync.RWMutex
+	assetMap = map[string]*models.Asset{}
+	mu       sync.RWMutex
 )
 
-// UpdateNEP5Asset adds or updates NEP5 asset cache.
-func UpdateNEP5Asset(asset *models.Asset) {
+// Update adds or updates asset cache.
+func Update(asset *models.Asset) {
 	mu.Lock()
 	defer mu.Unlock()
 
-	nep5AssetMap[asset.Contract] = asset
+	assetMap[asset.Contract] = asset
 }
 
-// UpdateNEP5Assets adds or updates NEP5 asset caches.
-func UpdateNEP5Assets(assets []*models.Asset) {
+// UpdateMulti adds or updates multiple asset caches.
+func UpdateMulti(assets []*models.Asset) {
 	mu.Lock()
 	defer mu.Unlock()
 
 	for _, asset := range assets {
-		nep5AssetMap[asset.Contract] = asset
+		assetMap[asset.Contract] = asset
 	}
 }
 
-// GetNEP5 returns NEP5 asset from cache if exists.
-func GetNEP5(contract string) (*models.Asset, bool) {
+// Get returns asset from cache (if exists).
+func Get(hash string) (*models.Asset, bool) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	nep5, ok := nep5AssetMap[contract]
-	return nep5, ok
+	asset, ok := assetMap[hash]
+	return asset, ok
 }
 
-// GetNEP5Decimals returns NEP5 asset decimals from cache if exists.
-func GetNEP5Decimals(contract string) (uint, bool) {
+// GetDecimals returns asset decimals from cache if exists.
+func GetDecimals(hash string) (uint, bool) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	nep5, ok := nep5AssetMap[contract]
+	asset, ok := assetMap[hash]
 	if !ok {
 		return 0, false
 	}
 
-	return nep5.Decimals, true
+	return asset.Decimals, true
 }
 
-// GetNEP5Symbol returns NEP5 asset symbol from cache if exists.
-func GetNEP5Symbol(contract string) (string, bool) {
+// GetSymbol returns asset symbol from cache (if exists).
+func GetSymbol(hash string) (string, bool) {
 	mu.RLock()
 	defer mu.RUnlock()
 
-	nep5, ok := nep5AssetMap[contract]
+	asset, ok := assetMap[hash]
 	if !ok {
 		return "", false
 	}
 
-	return nep5.Symbol, true
+	return asset.Symbol, true
 }
