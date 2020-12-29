@@ -15,7 +15,13 @@ type ApplicationLogResponse struct {
 
 // ApplicationLogResult represents applicationlog query result.
 type ApplicationLogResult struct {
-	TxID          string         `json:"txid"`
+	BlockHash  string            `json:"blockhash"`
+	TxID       string            `json:"txid"`
+	Executions []AppLogExecution `json:"executions"`
+}
+
+// AppLogExecution represents applicationlog executions.
+type AppLogExecution struct {
 	Trigger       string         `json:"trigger"`
 	VMState       string         `json:"vmstate"`
 	GasConsumed   *big.Float     `json:"gasconsumed"`

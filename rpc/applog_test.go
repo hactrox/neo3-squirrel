@@ -28,12 +28,9 @@ func TestGetApplicationLog(t *testing.T) {
 		t.Fatal("failed to get block of index 0")
 	}
 
-	for _, tx := range block.Tx {
-		appLogResult := GetApplicationLog(0, tx.Hash)
-		if appLogResult == nil ||
-			appLogResult.TxID == "" ||
-			appLogResult.VMState == "" {
-			t.Fatalf("Incorrect 'GetApplicationLog' func, txid=%s", tx.Hash)
-		}
+	appLogResult := GetApplicationLog(0, block.Hash)
+	if appLogResult == nil ||
+		appLogResult.BlockHash == "" {
+		t.Fatalf("Incorrect 'GetApplicationLog' func, txid=%s", block.Hash)
 	}
 }
