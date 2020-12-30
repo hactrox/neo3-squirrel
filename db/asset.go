@@ -84,6 +84,7 @@ func GetAllAssets(typ string) []*models.Asset {
 	return assets
 }
 
+// GetAddrAssetBalance returns asset balance of the given address.
 func GetAddrAssetBalance(addr, contract string) *big.Float {
 	query := []string{
 		"SELECT `balance`",
