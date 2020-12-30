@@ -106,6 +106,46 @@ func GetAddrAssetBalance(addr, contract string) *big.Float {
 	return convert.ToDecimal(balanceStr)
 }
 
+// GetAsset returns the asset info of the given hash.
+func GetAsset(hash string) *models.Asset {
+	query := []string{
+		fmt.Sprintf("SELECT %s", strings.Join(assetColumns, ", ")),
+		"FROM `asset`",
+		fmt.Sprintf("WHERE `contract` = '%s'", hash),
+		"LIMIT 1",
+	}
+
+	var asset models.Asset
+	var totalSupplyStr string
+
+	err := mysql.QueryRow(mysql.Compose(query), nil,
+		&asset.ID,
+		&asset.BlockIndex,
+		&asset.BlockTime,
+		&asset.TxID,
+		&asset.Contract,
+		&asset.Name,
+		&asset.Symbol,
+		&asset.Decimals,
+		&asset.Type,
+		&totalSupplyStr,
+		&asset.Addresses,
+		&asset.Transfers,
+	)
+
+	if err != nil {
+		if mysql.IsRecordNotFoundError(err) {
+			return nil
+		}
+
+		log.Panic(err)
+	}
+
+	asset.TotalSupply = convert.ToDecimal(totalSupplyStr)
+
+	return &asset
+}
+
 // InsertNewAsset persists new asset into DB.
 func InsertNewAsset(asset *models.Asset) {
 	if asset == nil {
