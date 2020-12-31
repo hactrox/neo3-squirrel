@@ -36,10 +36,15 @@ type ContractStatesResponse struct {
 
 // ContractState represents 'getcontractstates' query result.
 type ContractState struct {
-	ID                 int         `json:"id"`
-	UpdateCounter      uint        `json:"updatecounter"`
-	Hash               string      `json:"hash"`
-	Script             string      `json:"script"`
+	ID            int              `json:"id"`
+	UpdateCounter uint             `json:"updatecounter"`
+	Hash          string           `json:"hash"`
+	Script        string           `json:"script"`
+	Manifest      ContractManifest `json:"manifest"`
+}
+
+// ContractManifest represents the manifest struct of contract state.
+type ContractManifest struct {
 	Name               string      `json:"name"`
 	Groups             interface{} `json:"groups"`
 	SupportedStandards []string    `json:"supportedstandards"`
