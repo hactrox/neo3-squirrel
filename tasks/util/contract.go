@@ -1,15 +1,39 @@
 package util
 
 import (
+	"encoding/base64"
+	"encoding/hex"
 	"math/big"
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
+	"neo3-squirrel/util/byteutil"
 	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
 	"strings"
 )
 
-// QueryAssetBasicInfo gets contract name, symbol, decimals and totalSupply from fullnode.
+// GetContractHash extracts target contract hash from management contract noti state value.
+func GetContractHash(csNoti *models.Notification) (string, bool) {
+	state := csNoti.State
+	if state.Type != "Array" ||
+		len(state.Value) == 0 {
+		return "", false
+	}
+
+	contractHashBase64, ok := state.Value[0].Value.(string)
+	if !ok {
+		return "", false
+	}
+
+	contractHash, err := base64.StdEncoding.DecodeString(contractHashBase64)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return "0x" + hex.EncodeToString(byteutil.ReverseBytes(contractHash)), true
+}
+
+// QueryAssetBasicInfo gets contract symbol, decimals and totalSupply from fullnode.
 func QueryAssetBasicInfo(minBlockIndex uint, asset *models.Asset) bool {
 	contract := asset.Contract
 	var ok bool
@@ -18,11 +42,6 @@ func QueryAssetBasicInfo(minBlockIndex uint, asset *models.Asset) bool {
 		log.Panic("asset contract cannot be empty before query")
 	}
 
-	asset.Name, ok = queryContractName(minBlockIndex, contract)
-	if !ok {
-		log.Warnf("Failed to get 'name' from contract %s", contract)
-		return false
-	}
 	asset.Symbol, ok = queryContractSymbol(minBlockIndex, contract)
 	if !ok {
 		log.Warnf("Failed to get 'symbol' from contract %s", contract)
@@ -60,15 +79,6 @@ func QueryAssetTotalSupply(minBlockIndex uint, contract string, decimals uint) (
 	return totalSupply, true
 }
 
-func queryContractName(minBlockIndex uint, contract string) (string, bool) {
-	stack, ok := queryContractProperty(minBlockIndex, contract, "name")
-	if !ok {
-		return "", false
-	}
-
-	return extractString(models.ParseStackItem(stack))
-}
-
 func queryContractSymbol(minBlockIndex uint, contract string) (string, bool) {
 	stack, ok := queryContractProperty(minBlockIndex, contract, "symbol")
 	if !ok {
@@ -96,7 +106,7 @@ func queryContractTotalSupply(minBlockIndex uint, contract string) (*big.Float, 
 	return extractValue(models.ParseStackItem(stack))
 }
 
-// name, symbol...
+// query symbol and decimals
 func queryContractProperty(minBlockIndex uint, contract, property string) (*rpc.StackItem, bool) {
 	result := rpc.InvokeFunction(minBlockIndex, contract, property, nil)
 	if result == nil ||

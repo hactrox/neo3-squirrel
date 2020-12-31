@@ -1,13 +1,12 @@
 package contract
 
 import (
-	"neo3-squirrel/cache/asset"
-	"neo3-squirrel/cache/contractstate"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
-	"sort"
-	"strings"
+	"neo3-squirrel/tasks/util"
+	"neo3-squirrel/util/color"
+	"neo3-squirrel/util/log"
 	"time"
 )
 
@@ -15,85 +14,72 @@ const batches = 50
 
 // StartContractTask starts contract related tasks.
 func StartContractTask() {
-	latestRecord := db.GetLastContractStateRecord()
-	fromBlockIndex := uint(0)
-	if latestRecord != nil {
-		fromBlockIndex = latestRecord.BlockIndex + 1
+	log.Info(color.Green("Contract state sync task started"))
+	lastContract := db.GetLastContract()
+
+	// Insert native contracts if zero contracts.
+	if lastContract == nil {
+		persistNativeContracts()
 	}
 
-	go fetchContractStates(fromBlockIndex)
+	go handleContractNotification()
 }
 
-func fetchContractStates(fromBlockIndex uint) {
+func handleContractNotification() {
+	nextCSNotiPK := db.GetContractNotiPK() + 1
+
 	for {
-		contractStates := rpc.GetContractStates(fromBlockIndex, batches)
-		l := len(contractStates)
-		if l == 0 {
+		csNotis := db.GetContractNotifications(nextCSNotiPK, 100)
+		if len(csNotis) == 0 {
 			time.Sleep(1 * time.Second)
-
-			rpcBestIndex := rpc.GetBestHeight()
-			for rpcBestIndex >= 0 && rpcBestIndex < int(fromBlockIndex) {
-				time.Sleep(100 * time.Millisecond)
-				rpcBestIndex = rpc.GetBestHeight()
-			}
-
 			continue
 		}
 
-		sort.SliceStable(contractStates, func(i, j int) bool {
-			return contractStates[i].BlockIndex < contractStates[j].BlockIndex
-		})
-
-		// for _, cs := range contractStates {
-		// 	log.Debugf("%s %s %s %d %s", cs.Hash, cs.Name, cs.Symbol, cs.Decimals, convert.BigFloatToString(cs.TotalSupply))
-		// }
-
-		list := []*models.ContractState{}
-
-		// Split by block index.
-		for i := 0; i < l; i++ {
-			cs := models.ParseContractState(contractStates[i])
-
-			if cs.State == models.CSTrackStateAdded {
-				updateIfNEP5(cs)
-			}
-
-			list = append(list, cs)
-			if i+1 >= l || contractStates[i+1].BlockIndex != cs.BlockIndex {
-				contractstate.AddContractState(list)
-
-				// Reset list.
-				list = []*models.ContractState{}
+		for _, csNoti := range csNotis {
+			notiApplied := handleCsNoti(csNoti)
+			if !notiApplied {
+				db.UpdateContractNotiPK(csNoti.ID)
 			}
 		}
 
-		fromBlockIndex = contractStates[l-1].BlockIndex + 1
-		time.Sleep(100 * time.Millisecond)
+		nextCSNotiPK = csNotis[len(csNotis)-1].ID + 1
 	}
 }
 
-func updateIfNEP5(c *models.ContractState) {
-	if c.Name == "" || c.Symbol == "" || len(c.Manifest) == 0 {
-		return
+func handleCsNoti(csNoti *models.Notification) bool {
+	if util.VMStateFault(csNoti.VMState) {
+		return false
 	}
 
-	manifestStr := strings.ToLower(string(c.Manifest))
-
-	if strings.Contains(manifestStr, "nep-5") ||
-		strings.Contains(manifestStr, "nep5") {
-		nep5 := &models.Asset{
-			BlockIndex:  c.BlockIndex,
-			BlockTime:   c.BlockTime,
-			TxID:        c.TxID,
-			Contract:    c.Hash,
-			Name:        c.Name,
-			Symbol:      c.Symbol,
-			Decimals:    c.Decimals,
-			Type:        "nep5",
-			TotalSupply: c.TotalSupply,
-		}
-
-		asset.UpdateNEP5Asset(nep5)
-		db.InsertNewAsset(nep5)
+	contractHash, ok := util.GetContractHash(csNoti)
+	if !ok {
+		return false
 	}
+
+	rawContractState := rpc.GetContractState(csNoti.BlockIndex, contractHash)
+	if rawContractState == nil {
+		return false
+	}
+
+	contractState := models.ParseContractState(
+		csNoti.BlockIndex,
+		csNoti.BlockTime,
+		csNoti.Hash,
+		rawContractState,
+	)
+
+	switch models.EventName(csNoti.EventName) {
+	case models.ContractDeployEvent:
+		contractState.State = string(models.ContractDeployEvent)
+		db.InsertContract(contractState, csNoti.ID)
+	case models.ContractUpdateEvent:
+		contractState.State = string(models.ContractUpdateEvent)
+		db.UpdateContract(contractState, csNoti.ID, contractHash)
+	case models.ContractDestroyEvent:
+		db.DeleteContract(contractState.ID, csNoti.ID)
+	default:
+		log.Panicf("Unsupported contract notification eventname: %s", csNoti.EventName)
+	}
+
+	return true
 }
