@@ -37,6 +37,14 @@ func Get(hash string) (*models.Asset, bool) {
 	return asset, ok
 }
 
+// Remove removes the given asset from cache.
+func Remove(hash string) {
+	mu.RLock()
+	defer mu.RUnlock()
+
+	delete(assetMap, hash)
+}
+
 // GetDecimals returns asset decimals from cache if exists.
 func GetDecimals(hash string) (uint, bool) {
 	mu.RLock()
