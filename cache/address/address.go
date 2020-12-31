@@ -27,8 +27,8 @@ func Cache(address string) bool {
 	return false
 }
 
-// Init loads all addresses from db to cache.
-func Init(addresses []string) {
+// CacheMulti caches multiple addresses.
+func CacheMulti(addresses []string) {
 	mu.Lock()
 	defer mu.Unlock()
 
