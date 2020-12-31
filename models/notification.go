@@ -4,7 +4,6 @@ import (
 	"encoding/json"
 	"math/big"
 	"neo3-squirrel/rpc"
-	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
 )
 
@@ -37,6 +36,7 @@ type Notification struct {
 	ExecIndex   uint
 	Trigger     string
 	VMState     string
+	Exception   string
 	GasConsumed *big.Float
 	Stack       []StackItem
 	N           uint
@@ -94,12 +94,12 @@ func (noti *Notification) UnmarshalState(state []byte) {
 }
 
 // ParseApplicationLog parses struct raw application log rpc query result into []*models.Notification.
-func ParseApplicationLog(blockIndex uint, blockTime uint64, appLogResult *rpc.ApplicationLogResult) []*Notification {
-	hash, src := getHashSrc(appLogResult)
+func ParseApplicationLog(blockIndex uint, blockTime uint64, appLog *rpc.ApplicationLog) []*Notification {
+	hash, src := getHashSrc(appLog)
 
 	notis := []*Notification{}
 
-	for execIdx, exec := range appLogResult.Executions {
+	for execIdx, exec := range appLog.Executions {
 		for notiIdx, rawNoti := range exec.Notifications {
 			noti := Notification{
 				BlockIndex:  blockIndex,
@@ -109,7 +109,8 @@ func ParseApplicationLog(blockIndex uint, blockTime uint64, appLogResult *rpc.Ap
 				ExecIndex:   uint(execIdx),
 				Trigger:     exec.Trigger,
 				VMState:     exec.VMState,
-				GasConsumed: convert.AmountReadable(exec.GasConsumed, 8),
+				Exception:   exec.Exception,
+				GasConsumed: exec.GasConsumed,
 				Stack:       parseNotiStack(exec),
 				N:           uint(notiIdx),
 				Contract:    rawNoti.Contract,
@@ -124,12 +125,12 @@ func ParseApplicationLog(blockIndex uint, blockTime uint64, appLogResult *rpc.Ap
 	return notis
 }
 
-func getHashSrc(appLogResult *rpc.ApplicationLogResult) (string, string) {
-	if appLogResult.BlockHash != "" {
-		return appLogResult.BlockHash, SrcBlock
+func getHashSrc(appLog *rpc.ApplicationLog) (string, string) {
+	if appLog.BlockHash != "" {
+		return appLog.BlockHash, SrcBlock
 	}
 
-	return appLogResult.TxID, SrcTx
+	return appLog.TxID, SrcTx
 }
 
 func parseNotiStack(exec rpc.AppLogExecution) []StackItem {

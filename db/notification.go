@@ -19,6 +19,7 @@ var appLogNotiColumns = []string{
 	"`exec_idx`",
 	"`trigger`",
 	"`vmstate`",
+	"`exception`",
 	"`gasconsumed`",
 	"`stack`",
 	"`n`",
@@ -28,9 +29,15 @@ var appLogNotiColumns = []string{
 }
 
 // InsertAppLogNotifications inserts applicationlog notifications into database.
-func InsertAppLogNotifications(notifications []*models.Notification) {
+func InsertAppLogNotifications(notis, csNotis []*models.Notification) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
-		if err := insertAppLogNotifications(sqlTx, notifications); err != nil {
+		insertNotisCmd := generateNotiInsertCmd(len(notis))
+		if err := insertAppLogNotifications(sqlTx, insertNotisCmd, notis); err != nil {
+			return err
+		}
+
+		insertCSNotiCmd := generateCSNotiInsertCmd(len(notis))
+		if err := insertAppLogNotifications(sqlTx, insertCSNotiCmd, csNotis); err != nil {
 			return err
 		}
 
@@ -38,23 +45,14 @@ func InsertAppLogNotifications(notifications []*models.Notification) {
 	})
 }
 
-func insertAppLogNotifications(sqlTx *sql.Tx, notifications []*models.Notification) error {
-	if len(notifications) == 0 {
+func insertAppLogNotifications(sqlTx *sql.Tx, cmd string, notis []*models.Notification) error {
+	if len(notis) == 0 {
 		return nil
 	}
 
-	var strBuilder strings.Builder
-	strBuilder.WriteString("INSERT INTO `notification`")
-	strBuilder.WriteString(fmt.Sprintf("(%s)", strings.Join(appLogNotiColumns[1:], ", ")))
-	strBuilder.WriteString("VALUES")
-
-	// Construct (?, ?, ?) list.
-	statement := fmt.Sprintf(",(%s)", strings.Repeat(",?", len(appLogNotiColumns[1:]))[1:])
-	strBuilder.WriteString(strings.Repeat(statement, len(notifications))[1:])
-
 	// Construct sql query args.
 	args := []interface{}{}
-	for _, noti := range notifications {
+	for _, noti := range notis {
 		args = append(args,
 			noti.BlockIndex,
 			noti.BlockTime,
@@ -63,6 +61,7 @@ func insertAppLogNotifications(sqlTx *sql.Tx, notifications []*models.Notificati
 			noti.ExecIndex,
 			noti.Trigger,
 			noti.VMState,
+			noti.Exception,
 			convert.BigFloatToString(noti.GasConsumed),
 			noti.MarshalStack(),
 			noti.N,
@@ -72,13 +71,33 @@ func insertAppLogNotifications(sqlTx *sql.Tx, notifications []*models.Notificati
 		)
 	}
 
-	query := strBuilder.String()
-	_, err := sqlTx.Exec(query, args...)
+	_, err := sqlTx.Exec(cmd, args...)
 	if err != nil {
 		log.Error(err)
 	}
 
 	return err
+}
+
+func generateNotiInsertCmd(notiCount int) string {
+	return generateNotificationInsertCmd("notification", notiCount)
+}
+
+func generateCSNotiInsertCmd(notiCount int) string {
+	return generateNotificationInsertCmd("contract_notification", notiCount)
+}
+
+func generateNotificationInsertCmd(tableName string, notiCount int) string {
+	var strBuilder strings.Builder
+	strBuilder.WriteString(fmt.Sprintf("INSERT INTO `%s`", tableName))
+	strBuilder.WriteString(fmt.Sprintf("(%s)", strings.Join(appLogNotiColumns[1:], ", ")))
+	strBuilder.WriteString("VALUES")
+
+	// Construct (?, ?, ?) list.
+	statement := fmt.Sprintf(",(%s)", strings.Repeat(",?", len(appLogNotiColumns[1:]))[1:])
+	strBuilder.WriteString(strings.Repeat(statement, notiCount)[1:])
+
+	return strBuilder.String()
 }
 
 // GetLastNotification returns the last notification record.
@@ -91,6 +110,19 @@ func GetLastNotification() *models.Notification {
 	}
 
 	return getNotiQueryRow(query)
+}
+
+// GetContractNotifications returns contract notifications
+// starts from the given primary key(>=startPK);
+func GetContractNotifications(startPK, limit uint) []*models.Notification {
+	query := []string{
+		fmt.Sprintf("SELECT %s", strings.Join(appLogNotiColumns, ", ")),
+		"FROM `contract_notification`",
+		fmt.Sprintf("WHERE `id` >= %d", startPK),
+		fmt.Sprintf("LIMIT %d", limit),
+	}
+
+	return getAppLogNotiQuery(query)
 }
 
 // GetLastNotiForNEP5Task returns the last notification
@@ -184,6 +216,7 @@ func getNotiQueryRow(query []string) *models.Notification {
 		&noti.ExecIndex,
 		&noti.Trigger,
 		&noti.VMState,
+		&noti.Exception,
 		&gasConsumedStr,
 		&stack,
 		&noti.N,
@@ -191,6 +224,7 @@ func getNotiQueryRow(query []string) *models.Notification {
 		&noti.EventName,
 		&state,
 	)
+
 	if err != nil {
 		if mysql.IsRecordNotFoundError(err) {
 			return nil
@@ -231,6 +265,7 @@ func getAppLogNotiQuery(query []string) []*models.Notification {
 			&noti.ExecIndex,
 			&noti.Trigger,
 			&noti.VMState,
+			&noti.Exception,
 			&gasConsumedStr,
 			&stack,
 			&noti.N,

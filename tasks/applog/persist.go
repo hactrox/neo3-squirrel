@@ -3,21 +3,29 @@ package applog
 import (
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
-	"neo3-squirrel/util/convert"
 )
 
-func persistApplicationLogs(appLogChan <-chan *appLogResult) {
+func persistApplicationLogs(appLogChan <-chan *appLogInfo) {
 	for result := range appLogChan {
-		logResult := result.appLogQueryResult
+		logResult := result.appLog
 		blockIndex := result.BlockIndex
 		blockTime := result.BlockTime
 
-		// log.Debugf("handle application log of txID: %s", result.Hash)
+		notis := models.ParseApplicationLog(blockIndex, blockTime, logResult)
+		if len(notis) == 0 {
+			continue
+		}
 
-		// Store applicationlog result
-		appLog := models.ParseApplicationLog(blockIndex, blockTime, logResult)
-		appLog.GasConsumed = convert.AmountReadable(appLog.GasConsumed, 8)
-		db.InsertApplicationLog(appLog)
-		LastTxPK = result.PK
+		// Persist contract management notificatoins.
+		csNotis := []*models.Notification{}
+		for _, noti := range notis {
+			if noti.Contract == models.ManagementContract {
+				csNotis = append(csNotis, noti)
+			}
+		}
+
+		db.InsertAppLogNotifications(notis, csNotis)
+
+		LastAppLogPK = notis[len(notis)-1].ID
 	}
 }

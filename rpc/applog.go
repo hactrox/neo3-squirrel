@@ -10,11 +10,11 @@ import (
 // ApplicationLogResponse is the response structure of rpc call 'getapplicationlog'.
 type ApplicationLogResponse struct {
 	responseCommon
-	Result *ApplicationLogResult `json:"result"`
+	Result *ApplicationLog `json:"result"`
 }
 
-// ApplicationLogResult represents applicationlog query result.
-type ApplicationLogResult struct {
+// ApplicationLog represents applicationlog query result.
+type ApplicationLog struct {
 	BlockHash  string            `json:"blockhash"`
 	TxID       string            `json:"txid"`
 	Executions []AppLogExecution `json:"executions"`
@@ -44,7 +44,7 @@ type State struct {
 }
 
 // GetApplicationLog reflects the rpc call 'getapplicationlog'.
-func GetApplicationLog(minBlockIndex uint, txID string) *ApplicationLogResult {
+func GetApplicationLog(minBlockIndex uint, txID string) *ApplicationLog {
 	params := []interface{}{txID}
 	const method = "getapplicationlog"
 	args := generateRequestBody(method, params)

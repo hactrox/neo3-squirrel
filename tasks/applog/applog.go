@@ -4,6 +4,7 @@ import (
 	"fmt"
 	"neo3-squirrel/cache/block"
 	"neo3-squirrel/db"
+	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/log"
@@ -17,8 +18,14 @@ const chanSize = 5000
 var (
 	// appLogs stores txID with its applocationlog rpc query result.
 	appLogs sync.Map
-	// LastTxPK if the last tx pk of persisted tx appLogs.
-	LastTxPK uint
+
+	// LastAppLogPK is the latest application log persisted into db.
+	LastAppLogPK uint
+
+	preAppLogChan = make(chan *preAppLog, chanSize)
+	appLogChan    = make(chan *appLogInfo, chanSize)
+
+	queryResults = []*appLogInfo{}
 )
 
 type preAppLog struct {
@@ -26,117 +33,73 @@ type preAppLog struct {
 	Hash       string
 }
 
-type appLogResult struct {
-	PK                uint
-	BlockIndex        uint
-	BlockTime         uint64
-	Hash              string
-	appLogQueryResult *rpc.ApplicationLogResult
+type appLogInfo struct {
+	BlockIndex uint
+	BlockTime  uint64
+	Hash       string
+	appLog     *rpc.ApplicationLog
 }
 
 // StartApplicationLogSyncTask starts application log sync task.
 func StartApplicationLogSyncTask() {
-	lastAppLogTx := db.GetLastTxForApplicationLogTask()
+	lastNoti := db.GetLastNotification()
 
-	nextTxPK := uint(0)
-	upToBlockHeight := uint(0)
-	upToBlockTime := ""
+	if lastNoti != nil {
+		upToBlockTime := fmt.Sprintf("(%s)", timeutil.FormatBlockTime(lastNoti.BlockTime))
 
-	if lastAppLogTx != nil {
-		nextTxPK = lastAppLogTx.ID + 1
-		upToBlockHeight = lastAppLogTx.BlockIndex
-		if upToBlockHeight > 0 {
-			upToBlockTime = fmt.Sprintf("(%s)", timeutil.FormatBlockTime(lastAppLogTx.BlockTime))
+		msgs := []string{
+			fmt.Sprintf("%s: %s", color.Green("Up to block index"),
+				color.BGreenf("%d%s", lastNoti.BlockIndex, upToBlockTime)),
+		}
+
+		log.Info(color.Green("Application log sync progress:"))
+
+		for _, msg := range msgs {
+			log.Info("* " + msg)
 		}
 	}
 
-	remainingTxs := db.GetTxCount(nextTxPK)
-
-	msgs := []string{
-		fmt.Sprintf("%s: %s", color.Green("Up to block index"), color.BGreenf("%d%s", upToBlockHeight, upToBlockTime)),
-		fmt.Sprintf("%s: %s", color.Green("Transactions left"), color.BGreenf("%d", remainingTxs)),
-	}
-	log.Info(color.Green("Application log sync progress:"))
-	for _, msg := range msgs {
-		log.Info("* " + msg)
-	}
-
-	// Starts task.
-
-	preAppLogChan := make(chan *preAppLog, chanSize)
-	appLogChan := make(chan *appLogResult, chanSize)
-
-	go fetchApplicationLogs(nextTxPK, preAppLogChan, appLogChan)
+	// Start tasks.
+	go fetchApplicationLogs(lastNoti)
 	go queryAppLog(3, preAppLogChan)
-
 	go persistApplicationLogs(appLogChan)
 }
 
-func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *preAppLog, appLogChan chan<- *appLogResult) {
-	// Skip the genesis block.
-	nextBlockIndex := uint(1)
-	lastBlockAppLog := db.GetLastSystemAppLog()
-	if lastBlockAppLog != nil {
-		nextBlockIndex = lastBlockAppLog.BlockIndex + 1
+func fetchApplicationLogs(lastNoti *models.Notification) {
+	processLastBlockNotifications(lastNoti)
+
+	nextBlockIndex := uint(0)
+	if lastNoti != nil {
+		nextBlockIndex = lastNoti.BlockIndex + 1
 	}
 
 	for {
-		txs := db.GetTransactions(nextTxPK, 20)
-		if len(txs) == 0 {
-			time.Sleep(1 * time.Second)
-			continue
+		block, ok := block.GetBlock(nextBlockIndex)
+		if !ok {
+			block = db.GetBlock(nextBlockIndex)
+			if block == nil {
+				time.Sleep(1 * time.Second)
+				continue
+			}
+
+			block.SetTxs(db.GetBlockTxs(nextBlockIndex))
 		}
 
-		// Prepare app log result.
-		queryResult := []*appLogResult{}
+		nextBlockIndex++
 
-		// Send transactions to applog channel
+		preAppLogPushBlock(block)
+
+		// Send transactions to pre-applog channel
 		// and waiting for the applog query result.
-		for _, tx := range txs {
-			if tx.BlockIndex >= nextBlockIndex {
-				nextBlockIndex = tx.BlockIndex + 1
-				block, ok := block.GetBlock(tx.BlockIndex)
-				if !ok {
-					block = db.GetBlock(tx.BlockIndex)
-					if block == nil {
-						log.Panicf("Failed to get block at index %d", tx.BlockIndex)
-					}
-				}
-
-				preAppLogChan <- &preAppLog{
-					BlockIndex: block.Index,
-					Hash:       block.Hash,
-				}
-				queryResult = append(queryResult, &appLogResult{
-					BlockIndex:        block.Index,
-					BlockTime:         block.Time,
-					Hash:              block.Hash,
-					appLogQueryResult: nil,
-				})
-			}
-
-			preAppLogChan <- &preAppLog{
-				BlockIndex: tx.BlockIndex,
-				Hash:       tx.Hash,
-			}
-			queryResult = append(queryResult, &appLogResult{
-				PK:                tx.ID,
-				BlockIndex:        tx.BlockIndex,
-				BlockTime:         tx.BlockTime,
-				Hash:              tx.Hash,
-				appLogQueryResult: nil,
-			})
-
-			// log.Debugf("send tx %s to preAppLogChan", tx.Hash)
+		for _, tx := range block.GetTxs() {
+			preAppLogPushTx(tx)
 		}
 
-		nextTxPK = txs[len(txs)-1].ID + 1
-
-		for i := 0; i < len(queryResult); i++ {
+		for i := 0; i < len(queryResults); i++ {
 			retry := 0
 
 			for {
-				re := queryResult[i]
+				logInfo := queryResults[i]
 
 				// Wait for at most 30 seconds to crash unless all fullnodes down.
 				if retry > 3000 {
@@ -148,26 +111,81 @@ func fetchApplicationLogs(nextTxPK uint, preAppLogChan chan<- *preAppLog, appLog
 						continue
 					}
 
-					log.Panicf("Failed to get applog of %s(index=%d, time=%d)", re.Hash, re.BlockIndex, re.BlockTime)
+					log.Panicf("Failed to get applog of %s(index=%d, time=%d)",
+						logInfo.Hash, logInfo.BlockIndex, logInfo.BlockTime)
 				}
 
-				// Get applicationlog from
-				result, ok := appLogs.Load(re.Hash)
+				hash := logInfo.Hash
+
+				// Get applicationlog from query result chan.
+				result, ok := appLogs.Load(hash)
 				if !ok {
-					retry++
-					time.Sleep(10 * time.Millisecond)
+					retry += 5
+					time.Sleep(5 * time.Millisecond)
 					continue
 				}
 
-				appLogs.Delete(re.Hash)
+				appLogs.Delete(hash)
 
-				re.appLogQueryResult = result.(*rpc.ApplicationLogResult)
-				re.appLogQueryResult.TxID = re.Hash
+				logInfo.appLog = result.(*rpc.ApplicationLog)
 
-				appLogChan <- re
-				// log.Debugf("send appLog of tx %s into appLogChan", re.Hash)
+				appLogChan <- logInfo
 				break
 			}
 		}
+
+		// Clear query result array.
+		queryResults = []*appLogInfo{}
 	}
+}
+
+func processLastBlockNotifications(lastNoti *models.Notification) {
+	if lastNoti == nil {
+		return
+	}
+
+	blockIndex := lastNoti.BlockIndex
+
+	block, ok := block.GetBlock(blockIndex)
+	if !ok {
+		block = db.GetBlock(blockIndex)
+		if block == nil {
+			log.Panicf("Failed to get block at index %d", blockIndex)
+		}
+
+		block.SetTxs(db.GetBlockTxs(blockIndex))
+	}
+
+	start := false
+
+	for _, tx := range block.GetTxs() {
+		if !start && tx.Hash != lastNoti.Hash {
+			continue
+		}
+
+		start = true
+		preAppLogPushTx(tx)
+	}
+}
+
+func preAppLogPushBlock(block *models.Block) {
+	pushToPreChan(block.Index, block.Time, block.Hash)
+}
+
+func preAppLogPushTx(tx *models.Transaction) {
+	pushToPreChan(tx.BlockIndex, tx.BlockTime, tx.Hash)
+}
+
+func pushToPreChan(blockIndex uint, blockTime uint64, hash string) {
+	preAppLogChan <- &preAppLog{
+		BlockIndex: blockIndex,
+		Hash:       hash,
+	}
+
+	queryResults = append(queryResults, &appLogInfo{
+		BlockIndex: blockIndex,
+		BlockTime:  blockTime,
+		Hash:       hash,
+		appLog:     nil,
+	})
 }
