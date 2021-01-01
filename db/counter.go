@@ -10,20 +10,37 @@ import (
 
 // Counter db model.
 type Counter struct {
-	ID         uint
-	BlockIndex int
+	ID             uint
+	BlockIndex     int
+	ContractNotiPK uint
 
 	AddrCount uint
 }
+
+/* ------------------------------
+			Getter
+------------------------------ */
 
 // GetLastBlockHeight returns the last block height persisted.
 func GetLastBlockHeight() int {
 	return getCounterInstance().BlockIndex
 }
 
+// GetContractNotiPK returns the last contract notification primary key persisted.
+func GetContractNotiPK() uint {
+	return getCounterInstance().ContractNotiPK
+}
+
+// UpdateContractNotiPK updates `contract_noti_pk` counter.
+func UpdateContractNotiPK(pk uint) error {
+	return mysql.Trans(func(sqlTx *sql.Tx) error {
+		return updateContractNotiPK(sqlTx, pk)
+	})
+}
+
 func getCounterInstance() Counter {
 	query := []string{
-		"SELECT `id`, `block_index`, `addr_count`",
+		"SELECT `id`, `block_index`, `contract_noti_pk`, `addr_count`",
 		"FROM `counter`",
 		"WHERE `id` = 1",
 		"LIMIT 1",
@@ -34,6 +51,7 @@ func getCounterInstance() Counter {
 	err := mysql.QueryRow(mysql.Compose(query), nil,
 		&counter.ID,
 		&counter.BlockIndex,
+		&counter.ContractNotiPK,
 		&counter.AddrCount,
 	)
 
@@ -49,6 +67,10 @@ func getCounterInstance() Counter {
 	return counter
 }
 
+/* ------------------------------
+			Updater
+------------------------------ */
+
 func updateBlockIndexCounter(sqlTx *sql.Tx, blockIndex uint) error {
 	return updateCounter(sqlTx, "`block_index`", blockIndex)
 }
@@ -59,6 +81,10 @@ func updateAddressCounter(sqlTx *sql.Tx, addrAdded uint) error {
 
 func updateTxCounter(sqlTx *sql.Tx, txAdded int) error {
 	return updateCounterDelta(sqlTx, "`tx_count`", int64(txAdded))
+}
+
+func updateContractNotiPK(sqlTx *sql.Tx, pk uint) error {
+	return updateCounter(sqlTx, "`contract_noti_pk`", int64(pk))
 }
 
 func updateCounter(sqlTx *sql.Tx, field string, value interface{}) error {
