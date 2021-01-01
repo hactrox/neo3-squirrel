@@ -16,11 +16,12 @@ import (
 func Run() {
 	log.Info("Start Neo3 blockchain data parser.")
 
-	address.Init(db.GetAllAddressInfo())
+	// Cache all known addresses from DB.
+	address.CacheMulti(db.GetAllAddresses())
 
 	// Load all known assets from DB.
-	assets := db.GetAllAssets("nep5")
-	asset.UpdateNEP5Assets(assets)
+	assets := db.GetAllAssets()
+	asset.UpdateMulti(assets)
 
 	rpc.TraceBestHeight()
 
