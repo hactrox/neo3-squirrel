@@ -146,8 +146,8 @@ func GetLastNotiForNEP5Task() *models.Notification {
 	return getNotiQueryRow(query)
 }
 
-// GetNotificationsGroupedByTxID returns notifications grouped by txid.
-func GetNotificationsGroupedByTxID(startPK, groups uint) []*models.Notification {
+// GetNotificationsGroupedByHash returns notifications grouped by txid.
+func GetNotificationsGroupedByHash(startPK, groups uint) []*models.Notification {
 	// SELECT * FROM `notification`
 	// WHERE `id` >= {startPK} AND `hash` IN (
 	// 	SELECT `hash` FROM (
