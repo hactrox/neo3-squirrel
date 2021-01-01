@@ -22,6 +22,6 @@ func persistNativeContracts() {
 		}
 
 		contractState := models.ParseContractState(genesisBlock.Index, genesisBlock.Time, "", RawContractState)
-		db.InsertContract(contractState, 0)
+		db.InsertNativeContract(contractState)
 	}
 }

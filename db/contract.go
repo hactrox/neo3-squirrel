@@ -28,6 +28,13 @@ var contractColumns = []string{
 	"`extra`",
 }
 
+// InsertNativeContract inserts native contract into database.
+func InsertNativeContract(contract *models.ContractState) {
+	mysql.Trans(func(sqlTx *sql.Tx) error {
+		return insertContract(sqlTx, contract)
+	})
+}
+
 // InsertContract inserts contract state into database.
 func InsertContract(contract *models.ContractState, notiPK uint) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
