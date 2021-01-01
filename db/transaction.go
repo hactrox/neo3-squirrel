@@ -24,29 +24,6 @@ var txColumns = []string{
 	"`script`",
 }
 
-// GetLastTxForApplicationLogTask returns the last
-// transaction of the inserted application log record.
-func GetLastTxForApplicationLogTask() *models.Transaction {
-	// To match transaction record rahter than block record,
-	// trigger must be set to Application.
-	subQuery := []string{
-		"SELECT `txid`",
-		"FROM `applicationlog`",
-		"WHERE `trigger` = 'Application'",
-		"ORDER BY `id` DESC",
-		"LIMIT 1",
-	}
-
-	query := []string{
-		fmt.Sprintf("SELECT %s", strings.Join(txColumns, ", ")),
-		"FROM `transaction`",
-		fmt.Sprintf("WHERE `hash` = (%s)", mysql.Compose(subQuery)),
-		"LIMIT 1",
-	}
-
-	return getTransactionQueryRow(query)
-}
-
 // GetLastTransaction returns the last transaction record.
 func GetLastTransaction() *models.Transaction {
 	query := []string{
@@ -78,14 +55,12 @@ func GetTxCount(startPK uint) uint {
 	return count
 }
 
-// GetTransactions gets transactions starts from the given
-// primary key(>=) and limits to {limit} records from database.
-func GetTransactions(startPK, limit uint) []*models.Transaction {
+// GetBlockTxs gets transactions of the given block index.
+func GetBlockTxs(blockIndex uint) []*models.Transaction {
 	query := []string{
 		fmt.Sprintf("SELECT %s", strings.Join(txColumns, ", ")),
 		"FROM `transaction`",
-		fmt.Sprintf("WHERE `id` >= %d", startPK),
-		fmt.Sprintf("LIMIT %d", limit),
+		fmt.Sprintf("WHERE `block_index` = %d", blockIndex),
 	}
 
 	return getTransactionsQuery(query)
