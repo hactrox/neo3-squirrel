@@ -16,7 +16,7 @@ var transferColumns = []string{
 	"`id`",
 	"`block_index`",
 	"`block_time`",
-	"`txid`",
+	"`hash`",
 	"`src`",
 	"`contract`",
 	"`from`",
@@ -90,9 +90,9 @@ func updateAssetAddressesTransfers(sqlTx *sql.Tx, addrAssets []*models.AddrAsset
 		zero := convert.Zero
 		// New address holding this asset. addresses += 1
 		if originBalance.Cmp(zero) == 0 && balance.Cmp(zero) > 0 {
-			addressesChangeDelta[contract] += 1
+			addressesChangeDelta[contract]++
 		} else if originBalance.Cmp(zero) > 0 && balance.Cmp(zero) == 0 {
-			addressesChangeDelta[contract] -= 1
+			addressesChangeDelta[contract]--
 		}
 	}
 
@@ -160,7 +160,7 @@ func insertNEP5Transfer(sqlTx *sql.Tx, transfers []*models.Transfer) error {
 		args = append(args,
 			transfer.BlockIndex,
 			transfer.BlockTime,
-			transfer.TxID,
+			transfer.Hash,
 			transfer.Src,
 			transfer.Contract,
 			transfer.From,

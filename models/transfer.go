@@ -7,13 +7,12 @@ type Transfer struct {
 	ID         uint
 	BlockIndex uint
 	BlockTime  uint64
-	TxID       string
+	Hash       string
 	Src        string
 	Contract   string
 	From       string
 	To         string
 	Amount     *big.Float
-	// Visible    bool
 }
 
 // IsGASClaimTransfer tells if this transfer is GAS claim transfer.
