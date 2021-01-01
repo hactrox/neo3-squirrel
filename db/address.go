@@ -15,11 +15,10 @@ var addressInfoColumn = []string{
 	"`address`",
 	"`first_tx_time`",
 	"`last_tx_time`",
-	"`transfers`",
 }
 
-// GetAllAddressInfo returns all addresses from DB.
-func GetAllAddressInfo() []string {
+// GetAllAddresses returns all addresses from DB.
+func GetAllAddresses() []string {
 	query := []string{
 		"SELECT `address`",
 		"FROM `address`",
@@ -69,13 +68,12 @@ func updateAddressInfo(sqlTx *sql.Tx, delta map[string]*models.AddressInfo) erro
 	for _, addr := range addresses {
 		firstTxTime := delta[addr].FirstTxTime
 		lastTxTime := delta[addr].LastTxTime
-		newTransfers := delta[addr].Transfers
 
 		// The new address info should be inserted.
 		if firstTxTime == lastTxTime {
 			addrAdded++
-			insertionStrBuilder.WriteString(fmt.Sprintf(", ('%s', %d, %d, %d)",
-				addr, firstTxTime, lastTxTime, newTransfers))
+			insertionStrBuilder.WriteString(fmt.Sprintf(", ('%s', %d, %d)",
+				addr, firstTxTime, lastTxTime))
 			continue
 		}
 
@@ -83,7 +81,6 @@ func updateAddressInfo(sqlTx *sql.Tx, delta map[string]*models.AddressInfo) erro
 		updateSQL := []string{
 			"UPDATE `address`",
 			fmt.Sprintf("SET `last_tx_time` = %d", lastTxTime),
-			fmt.Sprintf(", `transfers` = `transfers` + %d", newTransfers),
 			fmt.Sprintf("WHERE `address` = '%s'", addr),
 			"LIMIT 1",
 		}

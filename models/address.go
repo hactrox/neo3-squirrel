@@ -6,5 +6,4 @@ type AddressInfo struct {
 	Address     string
 	FirstTxTime uint64
 	LastTxTime  uint64
-	Transfers   uint
 }
