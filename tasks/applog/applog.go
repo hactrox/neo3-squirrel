@@ -19,8 +19,8 @@ var (
 	// appLogs stores txID with its applocationlog rpc query result.
 	appLogs sync.Map
 
-	// LastAppLogPK is the latest application log persisted into db.
-	LastAppLogPK uint
+	// LastAppLogBlockIndex is the highest applog block index persisted.
+	LastAppLogBlockIndex uint
 
 	preAppLogChan = make(chan *preAppLog, chanSize)
 	appLogChan    = make(chan *appLogInfo, chanSize)

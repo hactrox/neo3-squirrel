@@ -26,6 +26,6 @@ func persistApplicationLogs(appLogChan <-chan *appLogInfo) {
 
 		db.InsertAppLogNotifications(notis, csNotis)
 
-		LastAppLogPK = notis[len(notis)-1].ID
+		LastAppLogBlockIndex = blockIndex
 	}
 }
