@@ -35,7 +35,6 @@ func showBlockStorageProgress(maxIndex int64, highestIndex int64) {
 
 	if prog.Percentage.Cmp(big.NewFloat(100)) >= 0 {
 		msg += color.Greenf("Block storage progress: %d. Block is fully synchronized.", maxIndex)
-		// msg += "100%"
 	} else {
 		msg += fmt.Sprintf("Block storage progress: %d/%d, ", maxIndex, highestIndex)
 		msg += fmt.Sprintf("%.4f%%", prog.Percentage)
@@ -50,43 +49,52 @@ func showBlockStorageProgress(maxIndex int64, highestIndex int64) {
 
 	msgs := []string{msg}
 	if prog.Finished && !rpc.AllFullnodesDown() {
-		msgs = append(msgs, appLogSyncProgressIndicator())
-		msgs = append(msgs, nep5SyncProgressIndicator())
+		msgs = append(msgs, appLogSyncProgressIndicator(uint(maxIndex)))
+		msgs = append(msgs, nep5SyncProgressIndicator(uint(maxIndex)))
 	}
 
 	log.Infof(strings.Join(msgs, " "))
 	prog.LastOutputTime = now
 }
 
-func appLogSyncProgressIndicator() string {
-	LastAppLogPK := applog.LastAppLogPK
+func appLogSyncProgressIndicator(currBlockIndex uint) string {
+	lastBlockIndex := applog.LastAppLogBlockIndex
 	lastNoti := db.GetLastNotification()
 
 	if lastNoti == nil {
 		return ""
 	}
 
-	offset := lastNoti.ID - LastAppLogPK
-	if LastAppLogPK == 0 || offset == 0 {
+	// If only 1 block behind.
+	if lastBlockIndex >= currBlockIndex-1 {
 		return ""
 	}
 
-	return fmt.Sprintf("[notificatoins left %d records]", offset)
+	offset := lastNoti.BlockIndex - lastBlockIndex
+	if lastBlockIndex == 0 || offset == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("[notificatoins left %d blocks]", offset)
 }
 
-func nep5SyncProgressIndicator() string {
-	lastPersistedPK := nep5.LastTxPK
+func nep5SyncProgressIndicator(currBlockIndex uint) string {
+	lastBlockIndex := nep5.LastTxBlockIndex
 	lastNoti := db.GetLastNotiForNEP5Task()
 
 	if lastNoti == nil {
 		return ""
 	}
 
-	offset := lastNoti.ID - lastPersistedPK
-
-	if lastPersistedPK == 0 || offset == 0 {
+	// If only 1 block behind.
+	if lastBlockIndex >= currBlockIndex-1 {
 		return ""
 	}
 
-	return fmt.Sprintf("[nep5 tx left %d records]", offset)
+	offset := lastNoti.BlockIndex - lastBlockIndex
+	if lastBlockIndex == 0 || offset == 0 {
+		return ""
+	}
+
+	return fmt.Sprintf("[nep5 tx left %d blocks]", offset)
 }
