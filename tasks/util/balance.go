@@ -1,6 +1,7 @@
 package util
 
 import (
+	"encoding/base64"
 	"encoding/hex"
 	"fmt"
 	"math/big"
@@ -64,7 +65,13 @@ func QueryNEP5Balances(minBlockIndex uint, addresses []string, contract string, 
 		script += sc
 	}
 
-	result := rpc.InvokeScript(minBlockIndex, script)
+	// Encode script hex string to base64 encoding.
+	scriptBytes, err := hex.DecodeString(script)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	result := rpc.InvokeScript(minBlockIndex, base64.StdEncoding.EncodeToString(scriptBytes))
 	if result == nil ||
 		VMStateFault(result.State) ||
 		len(result.Stack) < len(addresses) {
@@ -106,9 +113,10 @@ func generateNEP5BalanceOfScript(address, contract string) (string, error) {
 
 	addrBytes = addrBytes[1:21]
 
-	contract = strings.TrimLeft(contract, "0x")
+	contract = strings.TrimPrefix(contract, "0x")
 	contractBytes, err := hex.DecodeString(contract)
 	if err != nil {
+		log.Error(contract)
 		log.Error(err)
 		return "", err
 	}
