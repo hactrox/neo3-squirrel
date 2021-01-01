@@ -28,22 +28,18 @@ func countAddressTransfers(transfers []*models.Transfer) map[string]*models.Addr
 					Address:     addr,
 					FirstTxTime: blockTime,
 					LastTxTime:  blockTime,
-					Transfers:   1,
 				}
 
 				continue
 			}
 
-			addrInfo, ok := addrInfoUpdates[addr]
-			if ok {
-				addrInfo.Transfers++
+			if _, ok := addrInfoUpdates[addr]; ok {
 				continue
 			}
 
 			addrInfoUpdates[addr] = &models.AddressInfo{
 				Address:    addr,
 				LastTxTime: blockTime,
-				Transfers:  1,
 			}
 		}
 	}

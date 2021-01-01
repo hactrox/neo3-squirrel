@@ -14,17 +14,9 @@ import (
 )
 
 func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
-	lastBlockIndex := uint(0)
 	for txTransfers := range transferChan {
-		if txTransfers.BlockIndex > lastBlockIndex {
-			lastBlockIndex = txTransfers.BlockIndex
-
-			// Handle contract add, migrate, delete actions.
-			handleContractStateChange(txTransfers.BlockIndex)
-		}
-
 		processNEP5Transfers(txTransfers)
-		LastTxPK = txTransfers.PKs[len(txTransfers.PKs)-1]
+		LastTxBlockIndex = txTransfers.BlockIndex
 	}
 }
 
@@ -44,9 +36,8 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 	addrTransferCntDelta := countAddressTransfers(txTransfers.transfers)
 
 	for _, transfer := range txTransfers.transfers {
-		minBlockIndex := transfer.BlockIndex
-		contract := transfer.Contract
-		decimals, ok := asset.GetNEP5Decimals(contract)
+		assetHash := transfer.Contract
+		decimals, ok := asset.GetDecimals(assetHash)
 		if !ok {
 			continue
 		}
@@ -63,32 +54,33 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 			return
 		}
 
-		readableBalances, ok := util.QueryNEP5Balances(minBlockIndex, addrs, contract, decimals)
+		minBlockIndex := transfer.BlockIndex
+		readableBalances, ok := util.QueryNEP5Balances(minBlockIndex, addrs, assetHash, decimals)
 		if !ok {
 			return
 		}
 
 		addrAssetBalanceCache := make(map[string]*models.AddrAsset)
 
-		// Get contract balance of these addresses.
+		// Get asset balance of these addresses.
 		for idx, addr := range addrs {
 			// Filter this query if already queried.
-			if addrAsset, ok := addrAssetBalanceCache[addr+contract]; ok {
+			if addrAsset, ok := addrAssetBalanceCache[addr+assetHash]; ok {
 				addrAsset.Transfers++
 				continue
 			}
 
-			sleepIfGasConsumed(&slept, minBlockIndex, transfer, contract, addr)
+			sleepIfGasConsumed(&slept, minBlockIndex, transfer, assetHash, addr)
 
 			addrAsset := models.AddrAsset{
 				Address:   addr,
-				Contract:  contract,
+				Contract:  assetHash,
 				Balance:   readableBalances[idx],
 				Transfers: 1, // Number of transfers added.
 			}
 
 			addrAssets = append(addrAssets, &addrAsset)
-			addrAssetBalanceCache[addr+contract] = &addrAsset
+			addrAssetBalanceCache[addr+assetHash] = &addrAsset
 		}
 	}
 
@@ -107,7 +99,7 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 }
 
 func sleepIfGasConsumed(slept *bool, minBlockIndex uint, transfer *models.Transfer, contract, addr string) {
-	txID := transfer.TxID
+	txID := transfer.Hash
 
 	if *slept || contract != models.GAS ||
 		int(minBlockIndex) != rpc.GetBestHeight() {
@@ -138,7 +130,7 @@ func sleepIfGasConsumed(slept *bool, minBlockIndex uint, transfer *models.Transf
 
 func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {
 	if util.VMStateFault(noti.VMState) {
-		log.Debugf("VM execution status FAULT: %s", noti.TxID)
+		log.Debugf("VM execution status FAULT: %s", noti.Hash)
 		return false
 	}
 
@@ -171,7 +163,7 @@ func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {
 
 		contract := noti.Contract
 
-		decimals, ok := asset.GetNEP5Decimals(contract)
+		decimals, ok := asset.GetDecimals(contract)
 		if !ok {
 			continue
 		}
