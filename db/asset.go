@@ -20,7 +20,6 @@ var assetColumns = []string{
 	"`name`",
 	"`symbol`",
 	"`decimals`",
-	"`type`",
 	"`total_supply`",
 	"`addresses`",
 	"`transfers`",
@@ -34,15 +33,11 @@ var addrAssetColumns = []string{
 	"`transfers`",
 }
 
-// GetAllAssets returns all asset of the given type from DB.
-func GetAllAssets(typ string) []*models.Asset {
+// GetAllAssets returns all assets from DB.
+func GetAllAssets() []*models.Asset {
 	query := []string{
 		fmt.Sprintf("SELECT %s", strings.Join(assetColumns, ", ")),
 		"FROM `asset`",
-	}
-
-	if typ != "" && strings.ToLower(typ) != "all" {
-		query = append(query, fmt.Sprintf("WHERE `type` = '%s'", typ))
 	}
 
 	rows, err := mysql.Query(mysql.Compose(query))
@@ -67,7 +62,6 @@ func GetAllAssets(typ string) []*models.Asset {
 			&asset.Name,
 			&asset.Symbol,
 			&asset.Decimals,
-			&asset.Type,
 			&totalSupplyStr,
 			&asset.Addresses,
 			&asset.Transfers,
@@ -85,11 +79,12 @@ func GetAllAssets(typ string) []*models.Asset {
 }
 
 // GetAddrAssetBalance returns asset balance of the given address.
-func GetAddrAssetBalance(addr, contract string) *big.Float {
+func GetAddrAssetBalance(addr, assetHash string) *big.Float {
 	query := []string{
 		"SELECT `balance`",
 		"FROM `addr_asset`",
-		fmt.Sprintf("WHERE `address`='%s' AND `contract`='%s'", addr, contract),
+		fmt.Sprintf("WHERE `address`='%s'", addr),
+		fmt.Sprintf("AND `contract`='%s'", assetHash),
 		"LIMIT 1",
 	}
 
@@ -108,11 +103,11 @@ func GetAddrAssetBalance(addr, contract string) *big.Float {
 }
 
 // GetAsset returns the asset info of the given hash.
-func GetAsset(hash string) *models.Asset {
+func GetAsset(assetHash string) *models.Asset {
 	query := []string{
 		fmt.Sprintf("SELECT %s", strings.Join(assetColumns, ", ")),
 		"FROM `asset`",
-		fmt.Sprintf("WHERE `contract` = '%s'", hash),
+		fmt.Sprintf("WHERE `contract` = '%s'", assetHash),
 		"LIMIT 1",
 	}
 
@@ -128,7 +123,6 @@ func GetAsset(hash string) *models.Asset {
 		&asset.Name,
 		&asset.Symbol,
 		&asset.Decimals,
-		&asset.Type,
 		&totalSupplyStr,
 		&asset.Addresses,
 		&asset.Transfers,
@@ -145,6 +139,67 @@ func GetAsset(hash string) *models.Asset {
 	asset.TotalSupply = convert.ToDecimal(totalSupplyStr)
 
 	return &asset
+}
+
+// DestroyAsset deletes asset and its related data.
+func DestroyAsset(assetHash string) {
+	mysql.Trans(func(sqlTx *sql.Tx) error {
+		if err := deleteAssetTransfers(sqlTx, assetHash); err != nil {
+			return err
+		}
+
+		if err := deleteAsset(sqlTx, assetHash); err != nil {
+			return err
+		}
+
+		if err := deleteAssetAddrBalances(sqlTx, assetHash); err != nil {
+			return err
+		}
+
+		return nil
+	})
+}
+
+func deleteAssetTransfers(sqlTx *sql.Tx, assetHash string) error {
+	query := []string{
+		"DELETE FROM `transfer`",
+		fmt.Sprintf("WHERE `contract` = '%s'", assetHash),
+	}
+
+	_, err := sqlTx.Exec(mysql.Compose(query))
+	if err != nil {
+		log.Error(err)
+	}
+
+	return err
+}
+
+func deleteAsset(sqlTx *sql.Tx, assetHash string) error {
+	query := []string{
+		"DELETE FROM `asset`",
+		fmt.Sprintf("WHERE `contract` = '%s'", assetHash),
+	}
+
+	_, err := sqlTx.Exec(mysql.Compose(query))
+	if err != nil {
+		log.Error(err)
+	}
+
+	return err
+}
+
+func deleteAssetAddrBalances(sqlTx *sql.Tx, assetHash string) error {
+	query := []string{
+		"DELETE FROM `addr_asset`",
+		fmt.Sprintf("WHERE `contract` = '%s'", assetHash),
+	}
+
+	_, err := sqlTx.Exec(mysql.Compose(query))
+	if err != nil {
+		log.Error(err)
+	}
+
+	return err
 }
 
 // InsertNewAsset persists new asset into DB.
@@ -203,7 +258,6 @@ func insertNewAsset(sqlTx *sql.Tx, asset *models.Asset) error {
 		asset.Name,
 		asset.Symbol,
 		asset.Decimals,
-		asset.Type,
 		convert.BigFloatToString(asset.TotalSupply),
 		asset.Addresses,
 		asset.Transfers,
@@ -220,28 +274,4 @@ func insertNewAsset(sqlTx *sql.Tx, asset *models.Asset) error {
 
 	mysql.CheckIfRowsNotAffected(result, query)
 	return nil
-}
-
-func deleteAsset(sqlTx *sql.Tx, hashes []string) error {
-	if len(hashes) == 0 {
-		return nil
-	}
-
-	hashesParam := ""
-	for _, hash := range hashes {
-		hashesParam += fmt.Sprintf(", '%s'", hash)
-	}
-	hashesParam = hashesParam[2:]
-
-	query := []string{
-		"DELETE FROM `asset`",
-		fmt.Sprintf("WHERE `contract` IN (%s)", hashesParam),
-	}
-
-	_, err := sqlTx.Exec(mysql.Compose(query))
-	if err != nil {
-		log.Error(err)
-	}
-
-	return err
 }
