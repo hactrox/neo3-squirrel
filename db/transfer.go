@@ -27,7 +27,7 @@ var transferColumns = []string{
 // InsertNEP5Transfers inserts NEP5 transfers of a transactions into DB.
 func InsertNEP5Transfers(transfers []*models.Transfer,
 	addrAssets []*models.AddrAsset,
-	addrTransferCntDelta map[string]*models.AddressInfo,
+	txAddrInfo map[string]*models.AddressInfo,
 	newGASTotalSupply *big.Float) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
 		// Insert NEP5 transfers.
@@ -46,8 +46,8 @@ func InsertNEP5Transfers(transfers []*models.Transfer,
 		}
 
 		// Update address info.
-		if len(addrTransferCntDelta) > 0 {
-			if err := updateAddressInfo(sqlTx, addrTransferCntDelta); err != nil {
+		if len(txAddrInfo) > 0 {
+			if err := updateAddressInfo(sqlTx, txAddrInfo); err != nil {
 				return err
 			}
 		}

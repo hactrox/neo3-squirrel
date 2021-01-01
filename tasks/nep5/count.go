@@ -5,7 +5,7 @@ import (
 	"neo3-squirrel/models"
 )
 
-func countAddressTransfers(transfers []*models.Transfer) map[string]*models.AddressInfo {
+func getTxAddrInfo(transfers []*models.Transfer) map[string]*models.AddressInfo {
 	addrInfoUpdates := map[string]*models.AddressInfo{}
 
 	for _, transfer := range transfers {

@@ -26,6 +26,7 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 	}
 
 	addrAssets := []*models.AddrAsset{}
+	addrAssetBalanceCache := make(map[string]*models.AddrAsset)
 
 	// There may be a time gap between
 	// GAS balance updates and transaction gas fee deduction,
@@ -33,7 +34,7 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 	// for some time to make sure GAS balance changing was finalized.
 	slept := false
 
-	addrTransferCntDelta := countAddressTransfers(txTransfers.transfers)
+	txAddrInfo := getTxAddrInfo(txTransfers.transfers)
 
 	for _, transfer := range txTransfers.transfers {
 		assetHash := transfer.Contract
@@ -42,25 +43,16 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 			continue
 		}
 
-		addrs := []string{}
-		if len(transfer.From) > 0 {
-			addrs = append(addrs, transfer.From)
-		}
-		if len(transfer.To) > 0 && transfer.To != transfer.From {
-			addrs = append(addrs, transfer.To)
-		}
-
+		addrs := getTransferAddrs(transfer)
 		if len(addrs) == 0 {
-			return
+			continue
 		}
 
 		minBlockIndex := transfer.BlockIndex
 		readableBalances, ok := util.QueryNEP5Balances(minBlockIndex, addrs, assetHash, decimals)
 		if !ok {
-			return
+			continue
 		}
-
-		addrAssetBalanceCache := make(map[string]*models.AddrAsset)
 
 		// Get asset balance of these addresses.
 		for idx, addr := range addrs {
@@ -91,11 +83,23 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 		db.InsertNEP5Transfers(
 			txTransfers.transfers,
 			addrAssets,
-			addrTransferCntDelta,
+			txAddrInfo,
 			newGASTotalSupply)
 
 		showTransfers(txTransfers.transfers)
 	}
+}
+
+func getTransferAddrs(transfer *models.Transfer) []string {
+	addrs := []string{}
+	if len(transfer.From) > 0 {
+		addrs = append(addrs, transfer.From)
+	}
+	if len(transfer.To) > 0 && transfer.To != transfer.From {
+		addrs = append(addrs, transfer.To)
+	}
+
+	return addrs
 }
 
 func sleepIfGasConsumed(slept *bool, minBlockIndex uint, transfer *models.Transfer, contract, addr string) {
