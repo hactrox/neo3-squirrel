@@ -1,6 +1,5 @@
 TRUNCATE TABLE `addr_asset`;
-TRUNCATE TABLE `applicationlog`;
-TRUNCATE TABLE `applicationlog_notification`;
+TRUNCATE TABLE `notification`;
 TRUNCATE TABLE `asset`;
 TRUNCATE TABLE `block`;
 TRUNCATE TABLE `block_witness`;
@@ -12,5 +11,5 @@ TRUNCATE TABLE `transaction_witness`;
 TRUNCATE TABLE `transfer`;
 TRUNCATE TABLE `address`;
 TRUNCATE TABLE `contract`;
-TRUNCATE TABLE `contract_state`;
+TRUNCATE TABLE `contract_notification`;
 INSERT INTO `counter`(`id`, `block_index`) VALUES(1, -1);
