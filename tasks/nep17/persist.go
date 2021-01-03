@@ -1,4 +1,4 @@
-package nep5
+package nep17
 
 import (
 	"encoding/base64"
@@ -13,14 +13,14 @@ import (
 	"time"
 )
 
-func persistNEP5Transfers(transferChan <-chan *notiTransfer) {
+func persistNEP17Transfers(transferChan <-chan *notiTransfer) {
 	for txTransfers := range transferChan {
-		processNEP5Transfers(txTransfers)
+		processNEP17Transfers(txTransfers)
 		LastTxBlockIndex = txTransfers.BlockIndex
 	}
 }
 
-func processNEP5Transfers(txTransfers *notiTransfer) {
+func processNEP17Transfers(txTransfers *notiTransfer) {
 	if len(txTransfers.transfers) == 0 {
 		return
 	}
@@ -49,7 +49,7 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 		}
 
 		minBlockIndex := transfer.BlockIndex
-		readableBalances, ok := util.QueryNEP5Balances(minBlockIndex, addrs, assetHash, decimals)
+		readableBalances, ok := util.QueryNEP17Balances(minBlockIndex, addrs, assetHash, decimals)
 		if !ok {
 			continue
 		}
@@ -80,7 +80,7 @@ func processNEP5Transfers(txTransfers *notiTransfer) {
 	newGASTotalSupply := updateGASTotalSupply(txTransfers.transfers)
 
 	if len(txTransfers.transfers) > 0 || len(addrAssets) > 0 {
-		db.InsertNEP5Transfers(
+		db.InsertNEP17Transfers(
 			txTransfers.transfers,
 			addrAssets,
 			txAddrInfo,
@@ -172,7 +172,7 @@ func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {
 			continue
 		}
 
-		readableBalance, ok := util.QueryNEP5Balance(noti.BlockIndex, addr, contract, decimals)
+		readableBalance, ok := util.QueryNEP17Balance(noti.BlockIndex, addr, contract, decimals)
 		if !ok {
 			continue
 		}
@@ -186,7 +186,7 @@ func persistExtraAddrBalancesIfExists(noti *models.Notification) bool {
 	}
 
 	if len(addrAssets) > 0 {
-		db.PersistNEP5Balances(addrAssets)
+		db.PersistNEP17Balances(addrAssets)
 	}
 
 	return len(addrAssets) > 0

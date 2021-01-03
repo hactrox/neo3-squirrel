@@ -24,14 +24,14 @@ var transferColumns = []string{
 	"`amount`",
 }
 
-// InsertNEP5Transfers inserts NEP5 transfers of a transactions into DB.
-func InsertNEP5Transfers(transfers []*models.Transfer,
+// InsertNEP17Transfers inserts NEP17 transfers of a transactions into DB.
+func InsertNEP17Transfers(transfers []*models.Transfer,
 	addrAssets []*models.AddrAsset,
 	txAddrInfo map[string]*models.AddressInfo,
 	newGASTotalSupply *big.Float) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
-		// Insert NEP5 transfers.
-		if err := insertNEP5Transfer(sqlTx, transfers); err != nil {
+		// Insert NEP17 transfers.
+		if err := insertNEP17Transfer(sqlTx, transfers); err != nil {
 			return err
 		}
 
@@ -41,7 +41,7 @@ func InsertNEP5Transfers(transfers []*models.Transfer,
 		}
 
 		// Update balances.
-		if err := updateNEP5Balances(sqlTx, addrAssets); err != nil {
+		if err := updateNEP17Balances(sqlTx, addrAssets); err != nil {
 			return err
 		}
 
@@ -63,10 +63,10 @@ func InsertNEP5Transfers(transfers []*models.Transfer,
 	})
 }
 
-// PersistNEP5Balances inserts and updates address contract balances.
-func PersistNEP5Balances(addrAssets []*models.AddrAsset) {
+// PersistNEP17Balances inserts and updates address contract balances.
+func PersistNEP17Balances(addrAssets []*models.AddrAsset) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
-		updateNEP5Balances(sqlTx, addrAssets)
+		updateNEP17Balances(sqlTx, addrAssets)
 		return nil
 	})
 }
@@ -140,7 +140,7 @@ func updateAssetAddressesTransfers(sqlTx *sql.Tx, addrAssets []*models.AddrAsset
 	return err
 }
 
-func insertNEP5Transfer(sqlTx *sql.Tx, transfers []*models.Transfer) error {
+func insertNEP17Transfer(sqlTx *sql.Tx, transfers []*models.Transfer) error {
 	if len(transfers) == 0 {
 		return nil
 	}
@@ -178,7 +178,7 @@ func insertNEP5Transfer(sqlTx *sql.Tx, transfers []*models.Transfer) error {
 	return err
 }
 
-func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
+func updateNEP17Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 	if len(addrAssets) == 0 {
 		return nil
 	}
@@ -207,7 +207,7 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 		newTransfers := addrAsset.Transfers
 
 		// Check if record already exists.
-		addrAssetRec, err := getNEP5AddrAssetRecord(sqlTx, address, contract)
+		addrAssetRec, err := getNEP17AddrAssetRecord(sqlTx, address, contract)
 		if err != nil {
 			return err
 		}
@@ -253,7 +253,7 @@ func updateNEP5Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 	return err
 }
 
-func getNEP5AddrAssetRecord(sqlTx *sql.Tx, address, contract string) (*models.AddrAsset, error) {
+func getNEP17AddrAssetRecord(sqlTx *sql.Tx, address, contract string) (*models.AddrAsset, error) {
 	query := []string{
 		fmt.Sprintf("SELECT %s", strings.Join(addrAssetColumns, ", ")),
 		"FROM `addr_asset`",

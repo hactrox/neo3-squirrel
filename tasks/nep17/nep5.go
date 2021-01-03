@@ -1,4 +1,4 @@
-package nep5
+package nep17
 
 import (
 	"fmt"
@@ -31,9 +31,9 @@ type notiTransfer struct {
 	transfers  []*models.Transfer
 }
 
-// StartNEP5TransferSyncTask starts NEP5 transfer related tasks.
-func StartNEP5TransferSyncTask() {
-	lastTransferNoti := db.GetLastNotiForNEP5Task()
+// StartNEP17TransferSyncTask starts NEP17 transfer related tasks.
+func StartNEP17TransferSyncTask() {
+	lastTransferNoti := db.GetLastNotiForNEP17Task()
 	upToBlockHeight := uint(0)
 	upToBlockTime := ""
 	remainingNotis := uint(0)
@@ -55,7 +55,7 @@ func StartNEP5TransferSyncTask() {
 		fmt.Sprintf("%s: %s", color.Green("Up to block index"), color.BGreenf("%d%s", upToBlockHeight, upToBlockTime)),
 		fmt.Sprintf("%s: %s", color.Green("Notification left"), color.BGreenf("%d", remainingNotis)),
 	}
-	log.Info(color.Green("NEP5 transfer sync progress:"))
+	log.Info(color.Green("NEP17 transfer sync progress:"))
 	for _, msg := range msgs {
 		log.Info("* " + msg)
 	}
@@ -64,7 +64,7 @@ func StartNEP5TransferSyncTask() {
 	transferChan := make(chan *notiTransfer, chanSize)
 
 	go fetchNotifications(lastNotiPK+1, transferChan)
-	go persistNEP5Transfers(transferChan)
+	go persistNEP17Transfers(transferChan)
 }
 
 func fetchNotifications(nextNotiPK uint, transferChan chan<- *notiTransfer) {
@@ -95,8 +95,8 @@ func fetchNotifications(nextNotiPK uint, transferChan chan<- *notiTransfer) {
 
 				switch strings.ToLower(eventName) {
 				case "transfer":
-					log.Debugf("New NEP5 transfer event detected: %s", hash)
-					transfer := parseNEP5Transfer(noti)
+					log.Debugf("New NEP17 transfer event detected: %s", hash)
+					transfer := parseNEP17Transfer(noti)
 					if transfer != nil {
 						transferInfo.transfers = append(transferInfo.transfers, transfer)
 					}
@@ -147,7 +147,7 @@ func handleAssetDestroy(noti *models.Notification) {
 	asset.Remove(contractHash)
 }
 
-func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
+func parseNEP17Transfer(noti *models.Notification) *models.Transfer {
 	if util.VMStateFault(noti.VMState) {
 		log.Debugf("VM execution status FAULT: %s", noti.Hash)
 		return nil
@@ -156,7 +156,7 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 	if noti.State == nil ||
 		noti.State.Type != "Array" ||
 		len(noti.State.Value) != 3 {
-		log.Debug("NEP5 transfer notification state not correct")
+		log.Debug("NEP17 transfer notification state not correct")
 		return nil
 	}
 
@@ -164,22 +164,22 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 	assetHash := noti.Contract
 	decimals, ok := asset.GetDecimals(assetHash)
 	if !ok {
-		nep5 := queryNEP5AssetInfo(noti, assetHash)
-		if nep5 == nil {
+		nep17 := queryNEP17AssetInfo(noti, assetHash)
+		if nep17 == nil {
 			return nil
 		}
 
-		db.InsertNewAsset(nep5)
+		db.InsertNewAsset(nep17)
 
-		asset.Update(nep5)
-		decimals = nep5.Decimals
+		asset.Update(nep17)
+		decimals = nep17.Decimals
 	}
 
 	// Parse Transfer Info.
 	stackItems := noti.State.Value
-	from, to, rawAmount, ok := util.ExtractNEP5Transfer(stackItems)
+	from, to, rawAmount, ok := util.ExtractNEP17Transfer(stackItems)
 	if !ok {
-		log.Debug("Failed to extract NEP5 transfer parameters")
+		log.Debug("Failed to extract NEP17 transfer parameters")
 		return nil
 	}
 
@@ -197,14 +197,14 @@ func parseNEP5Transfer(noti *models.Notification) *models.Transfer {
 	}
 
 	if readableAmount.Cmp(config.MaxVal) > 0 {
-		log.Errorf("NEP5 transfer amount exceed, transfer skipped: %v", transfer)
+		log.Errorf("NEP17 transfer amount exceed, transfer skipped: %v", transfer)
 		return nil
 	}
 
 	return &transfer
 }
 
-func queryNEP5AssetInfo(noti *models.Notification, contract string) *models.Asset {
+func queryNEP17AssetInfo(noti *models.Notification, contract string) *models.Asset {
 	minBlockIndex := noti.BlockIndex
 	asset := models.Asset{
 		BlockIndex: minBlockIndex,
@@ -220,7 +220,7 @@ func queryNEP5AssetInfo(noti *models.Notification, contract string) *models.Asse
 	bestBlockIndex := rpc.GetBestHeight()
 	ok := util.QueryAssetBasicInfo(minBlockIndex, &asset)
 	if !ok {
-		log.Warnf("Failed to get NEP5 contract info. Hash=%s(%s), Contract=%s, BlockIndex=%d, BlockTime=%s",
+		log.Warnf("Failed to get NEP17 contract info. Hash=%s(%s), Contract=%s, BlockIndex=%d, BlockTime=%s",
 			noti.Hash, noti.Src, contract, noti.BlockIndex, timeutil.FormatBlockTime(noti.BlockTime))
 		return nil
 	}

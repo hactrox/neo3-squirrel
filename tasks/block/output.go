@@ -6,7 +6,7 @@ import (
 	"neo3-squirrel/db"
 	"neo3-squirrel/rpc"
 	"neo3-squirrel/tasks/applog"
-	"neo3-squirrel/tasks/nep5"
+	"neo3-squirrel/tasks/nep17"
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/log"
 	"neo3-squirrel/util/progress"
@@ -50,7 +50,7 @@ func showBlockStorageProgress(maxIndex int64, highestIndex int64) {
 	msgs := []string{msg}
 	if prog.Finished && !rpc.AllFullnodesDown() {
 		msgs = append(msgs, appLogSyncProgressIndicator(uint(maxIndex)))
-		msgs = append(msgs, nep5SyncProgressIndicator(uint(maxIndex)))
+		msgs = append(msgs, nep17SyncProgressIndicator(uint(maxIndex)))
 	}
 
 	log.Infof(strings.Join(msgs, " "))
@@ -78,9 +78,9 @@ func appLogSyncProgressIndicator(currBlockIndex uint) string {
 	return fmt.Sprintf("[notificatoins left %d blocks]", offset)
 }
 
-func nep5SyncProgressIndicator(currBlockIndex uint) string {
-	lastBlockIndex := nep5.LastTxBlockIndex
-	lastNoti := db.GetLastNotiForNEP5Task()
+func nep17SyncProgressIndicator(currBlockIndex uint) string {
+	lastBlockIndex := nep17.LastTxBlockIndex
+	lastNoti := db.GetLastNotiForNEP17Task()
 
 	if lastNoti == nil {
 		return ""
@@ -96,5 +96,5 @@ func nep5SyncProgressIndicator(currBlockIndex uint) string {
 		return ""
 	}
 
-	return fmt.Sprintf("[nep5 tx left %d blocks]", offset)
+	return fmt.Sprintf("[nep17 tx left %d blocks]", offset)
 }

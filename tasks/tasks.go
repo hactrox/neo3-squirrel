@@ -8,7 +8,7 @@ import (
 	"neo3-squirrel/tasks/applog"
 	"neo3-squirrel/tasks/block"
 	"neo3-squirrel/tasks/contract"
-	"neo3-squirrel/tasks/nep5"
+	"neo3-squirrel/tasks/nep17"
 	"neo3-squirrel/util/log"
 )
 
@@ -28,5 +28,5 @@ func Run() {
 	block.StartBlockSyncTask()
 	contract.StartContractTask()
 	applog.StartApplicationLogSyncTask()
-	nep5.StartNEP5TransferSyncTask()
+	nep17.StartNEP17TransferSyncTask()
 }

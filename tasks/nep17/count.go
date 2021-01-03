@@ -1,4 +1,4 @@
-package nep5
+package nep17
 
 import (
 	"neo3-squirrel/cache/address"

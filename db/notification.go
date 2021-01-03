@@ -125,9 +125,9 @@ func GetContractNotifications(startPK, limit uint) []*models.Notification {
 	return getAppLogNotiQuery(query)
 }
 
-// GetLastNotiForNEP5Task returns the last notification
-// of the NEP5 transfer record.
-func GetLastNotiForNEP5Task() *models.Notification {
+// GetLastNotiForNEP17Task returns the last notification
+// of the NEP17 transfer record.
+func GetLastNotiForNEP17Task() *models.Notification {
 	subQuery := []string{
 		"SELECT `hash`",
 		"FROM `transfer`",

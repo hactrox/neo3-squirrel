@@ -13,8 +13,8 @@ import (
 	"strings"
 )
 
-// QueryNEP5Balance queries address contract balance from fullnode.
-func QueryNEP5Balance(minBlockIndex uint, address, contract string, decimals uint) (*big.Float, bool) {
+// QueryNEP17Balance queries address contract balance from fullnode.
+func QueryNEP17Balance(minBlockIndex uint, address, contract string, decimals uint) (*big.Float, bool) {
 	if len(address) == 0 {
 		err := fmt.Errorf("address cannot be empty")
 		log.Panic(err)
@@ -48,8 +48,8 @@ func QueryNEP5Balance(minBlockIndex uint, address, contract string, decimals uin
 	return convert.AmountReadable(rawBalance, decimals), true
 }
 
-// QueryNEP5Balances queries addresses balances from fullnode.
-func QueryNEP5Balances(minBlockIndex uint, addresses []string, contract string, decimals uint) ([]*big.Float, bool) {
+// QueryNEP17Balances queries addresses balances from fullnode.
+func QueryNEP17Balances(minBlockIndex uint, addresses []string, contract string, decimals uint) ([]*big.Float, bool) {
 	if len(addresses) == 0 {
 		err := fmt.Errorf("addresses cannot be empty")
 		log.Panic(err)
@@ -57,7 +57,7 @@ func QueryNEP5Balances(minBlockIndex uint, addresses []string, contract string, 
 
 	script := ""
 	for _, addr := range addresses {
-		sc, err := generateNEP5BalanceOfScript(addr, contract)
+		sc, err := generateNEP17BalanceOfScript(addr, contract)
 		if err != nil {
 			return nil, false
 		}
@@ -97,7 +97,7 @@ func QueryNEP5Balances(minBlockIndex uint, addresses []string, contract string, 
 	return readableBalances, true
 }
 
-func generateNEP5BalanceOfScript(address, contract string) (string, error) {
+func generateNEP17BalanceOfScript(address, contract string) (string, error) {
 	var strBuilder strings.Builder
 
 	addrBytes, err := base58.CheckDecode(address)
