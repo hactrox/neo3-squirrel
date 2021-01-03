@@ -21,41 +21,9 @@ SELECT 'check counter field `addr_count`', IF(
 
 UNION ALL
 
-SELECT 'check notification count', IF(
-    (SELECT IFNULL((SELECT SUM(`notifications`) FROM `applicationlog`), 0)) -
-    (SELECT COUNT(`id`) FROM `applicationlog_notification`) = 0
-, 'PASS', 'FAIL')
-
-UNION ALL
-
 SELECT 'check transaction count', IF(
     (SELECT IFNULL((SELECT SUM(`txs`) FROM `block`), 0)) -
     (SELECT COUNT(`id`) FROM `transaction`) = 0
-, 'PASS', 'FAIL')
-
-UNION ALL
-
-SELECT 'check address transfer count', IF(
-    !EXISTS(SELECT `cal`.`addr` `address`, `cal`.`transfers` `get`, `address`.`transfers` `want`
-           FROM (SELECT `addr`, SUM(cnt) `transfers`
-                 FROM (
-                          SELECT `from` `addr`, COUNT(`from`) `cnt`
-                          FROM `transfer` WHERE `from` != ''
-                          GROUP BY `from`
-                          UNION ALL
-                          SELECT `to` `addr`, COUNT(`to`) `cnt`
-                          FROM `transfer` WHERE `to` != ''
-                          GROUP BY `to`
-                          UNION ALL
-                          SELECT `from` `addr`, -COUNT(id) `cnt`
-                          FROM `transfer`
-                          WHERE `from` != '' AND `from` = `to`
-                          GROUP BY `from`
-                      ) `tbl`
-                 WHERE `addr` <> ''
-                 GROUP BY `tbl`.`addr`) `cal`
-                    JOIN `address` ON `cal`.`addr` = `address`.`address`
-           WHERE `cal`.`transfers` <> `address`.`transfers`)
 , 'PASS', 'FAIL')
 
 UNION ALL
@@ -106,7 +74,7 @@ SELECT 'check assets', IF(
        FROM `transfer`
        WHERE `contract` NOT IN (
            SELECT `contract` FROM `asset`
-        ) AND `visible`=TRUE
+        )
    )
 , 'PASS', 'FAIL')
 
@@ -123,17 +91,17 @@ SELECT 'check addr asset transfers', IF(
                  FROM (
                           SELECT `from` `addr`, COUNT(`from`) `cnt`
                           FROM `transfer`
-                          WHERE `from` != '' AND `visible` = true
+                          WHERE `from` != ''
                           GROUP BY `from`
                           UNION ALL
                           SELECT `to` `addr`, COUNT(`to`) `cnt`
                           FROM `transfer`
-                          WHERE `to` != '' AND `visible` = true
+                          WHERE `to` != ''
                           GROUP BY `to`
                           UNION ALL
                           SELECT `from` `addr`, -COUNT(id) `cnt`
                           FROM `transfer`
-                          WHERE `from` != '' AND `from` = `to` AND `visible` = true
+                          WHERE `from` != '' AND `from` = `to`
                           GROUP BY `from`
                       ) `tbl`
                  WHERE `addr` <> ''
@@ -148,8 +116,8 @@ UNION ALL
 
 SELECT 'check NEO & GAS transfers total amount balance', IF(
     !EXISTS(
-        SELECT @NEO = '0xde5f57d430d3dece511cf975a8d37848cb9e0525',
-               @GAS = '0x668e0c1f9d7b70a99dd9e06eadd4c784d641afbc',
+        SELECT @NEO = '0x0a46e2e37c9987f570b4af253fb77e7eef0f72b6',
+               @GAS = '0xa6a6c15dcdc9b997dac448b6926522d22efeedfb',
                addr_asset.address,
                addr_asset.contract,
                addr_asset.balance,
