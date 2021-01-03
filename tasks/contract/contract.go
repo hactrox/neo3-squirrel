@@ -10,8 +10,6 @@ import (
 	"time"
 )
 
-const batches = 50
-
 // StartContractTask starts contract related tasks.
 func StartContractTask() {
 	log.Info(color.Green("Contract state sync task started"))
