@@ -76,16 +76,30 @@ func handleCsNoti(csNoti *models.Notification) bool {
 
 	switch models.EventName(csNoti.EventName) {
 	case models.ContractDeployEvent:
-		contractState.State = string(models.ContractDeployEvent)
-		db.InsertContract(contractState, csNoti.ID)
+		insertContract(contractState, csNoti.ID)
 	case models.ContractUpdateEvent:
-		contractState.State = string(models.ContractUpdateEvent)
-		db.UpdateContract(contractState, csNoti.ID, contractHash)
+		updateContract(contractState, csNoti.ID, contractHash)
 	case models.ContractDestroyEvent:
-		db.DeleteContract(contractState.ID, csNoti.ID)
+		deleteContract(contractState.ID, csNoti.ID)
 	default:
 		log.Panicf("Unsupported contract notification eventname: %s", csNoti.EventName)
 	}
 
+	showContractDBState(contractState)
+
 	return true
+}
+
+func insertContract(contractState *models.ContractState, csNotiID uint) {
+	contractState.State = string(models.ContractDeployEvent)
+	db.InsertContract(contractState, csNotiID)
+}
+
+func updateContract(contractState *models.ContractState, csNotiID uint, contractHash string) {
+	contractState.State = string(models.ContractUpdateEvent)
+	db.UpdateContract(contractState, csNotiID, contractHash)
+}
+
+func deleteContract(csID uint, csNotiID uint) {
+	db.DeleteContract(csID, csNotiID)
 }
