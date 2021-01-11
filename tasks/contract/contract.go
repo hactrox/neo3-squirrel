@@ -56,12 +56,20 @@ func handleCsNoti(csNoti *models.Notification) bool {
 
 	rawContractState := rpc.GetContractState(csNoti.BlockIndex, contractHash)
 	if rawContractState == nil {
+		// This contract may be deleted so we cannot get contract state from rpc.
 		return false
+	}
+
+	// Get sender from transaction detail.
+	tx := db.GetTransaction(csNoti.Hash)
+	if tx == nil {
+		log.Panicf("Failed to get transaction detail of txid=%s", csNoti.Hash)
 	}
 
 	contractState := models.ParseContractState(
 		csNoti.BlockIndex,
 		csNoti.BlockTime,
+		tx.Sender,
 		csNoti.Hash,
 		rawContractState,
 	)

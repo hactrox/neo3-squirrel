@@ -21,7 +21,7 @@ func persistNativeContracts() {
 			log.Panicf("Failed to get contract state of hash %s", contractHash)
 		}
 
-		contractState := models.ParseContractState(genesisBlock.Index, genesisBlock.Time, "", RawContractState)
+		contractState := models.ParseContractState(genesisBlock.Index, genesisBlock.Time, "", "", RawContractState)
 		db.InsertNativeContract(contractState)
 	}
 }

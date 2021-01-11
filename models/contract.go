@@ -43,6 +43,7 @@ type ContractState struct {
 	ID            uint
 	BlockIndex    uint
 	BlockTime     uint64
+	Creator       string
 	TxID          string
 	ContractID    int
 	Hash          string
@@ -64,10 +65,11 @@ type ContractManifest struct {
 }
 
 // ParseContractState parses struct *rpc.ContractState to *models.ContractState.
-func ParseContractState(blockIndex uint, blockTime uint64, txID string, rawCS *rpc.ContractState) *ContractState {
+func ParseContractState(blockIndex uint, blockTime uint64, creator, txID string, rawCS *rpc.ContractState) *ContractState {
 	cs := &ContractState{
 		BlockIndex:    blockIndex,
 		BlockTime:     blockTime,
+		Creator:       creator,
 		TxID:          txID,
 		ContractID:    rawCS.ID,
 		Hash:          rawCS.Hash,

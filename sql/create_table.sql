@@ -193,6 +193,7 @@ CREATE TABLE IF NOT EXISTS `contract`
     `id`              INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `block_index`     INT UNSIGNED  NOT NULL,
     `block_time`   BIGINT UNSIGNED  NOT NULL,
+    `creator`             CHAR(34)  NOT NULL,
     `txid`                CHAR(66)  NOT NULL,
     `contract_id`              INT  NOT NULL,
     `hash`                CHAR(42)  NOT NULL UNIQUE,
