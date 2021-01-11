@@ -8,7 +8,6 @@ import (
 	"neo3-squirrel/models"
 	"neo3-squirrel/rpc"
 	"neo3-squirrel/util/color"
-	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
 	"neo3-squirrel/util/progress"
 	"neo3-squirrel/util/timeutil"
@@ -204,11 +203,7 @@ func store(rawBlocks []*rpc.Block) {
 	blocks := models.ParseBlocks(rawBlocks)
 	txBulk := models.ParseTxs(rawBlocks)
 
-	for _, tx := range txBulk.Txs {
-		tx.SysFee = convert.AmountReadable(tx.SysFee, 8)
-		tx.NetFee = convert.AmountReadable(tx.NetFee, 8)
-	}
-
+	// Cache blocks to help other modules getting blocks quicker if cache hit.
 	block.CacheBlocks(blocks)
 	db.InsertBlock(blocks, txBulk)
 
