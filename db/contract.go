@@ -165,6 +165,19 @@ func deleteContract(sqlTx *sql.Tx, contractID uint) error {
 	return err
 }
 
+// GetAllNativeContracts returns all Neo3 native contracts.
+func GetAllNativeContracts() []*models.ContractState {
+	query := []string{
+		fmt.Sprintf("SELECT %s", strings.Join(contractColumns, ", ")),
+		"FROM `contract`",
+		"WHERE `contract_id` <= 0",
+		"AND `block_index` = 0",
+		"ORDER BY `id` ASC",
+	}
+
+	return getContractQuery(query)
+}
+
 // GetLastContract returns the last contract from db.
 func GetLastContract() *models.ContractState {
 	query := []string{
