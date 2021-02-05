@@ -17,7 +17,7 @@ type Transfer struct {
 
 // IsGASClaimTransfer tells if this transfer is GAS claim transfer.
 func (transfer *Transfer) IsGASClaimTransfer() bool {
-	if transfer.Contract == GAS &&
+	if transfer.Contract == GASContract &&
 		transfer.From == "" &&
 		transfer.To != "" {
 		return true

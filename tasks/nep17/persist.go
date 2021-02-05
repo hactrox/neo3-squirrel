@@ -105,7 +105,7 @@ func getTransferAddrs(transfer *models.Transfer) []string {
 func sleepIfGasConsumed(slept *bool, minBlockIndex uint, transfer *models.Transfer, contract, addr string) {
 	txID := transfer.Hash
 
-	if *slept || contract != models.GAS ||
+	if *slept || contract != models.GASContract ||
 		int(minBlockIndex) != rpc.GetBestHeight() {
 		return
 	}

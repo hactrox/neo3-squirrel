@@ -54,7 +54,7 @@ func InsertNEP17Transfers(transfers []*models.Transfer,
 
 		// Update GAS total supply if it changed.
 		if newGASTotalSupply != nil {
-			if err := updateContractTotalSupply(sqlTx, models.GAS, newGASTotalSupply); err != nil {
+			if err := updateContractTotalSupply(sqlTx, models.GASContract, newGASTotalSupply); err != nil {
 				return err
 			}
 		}

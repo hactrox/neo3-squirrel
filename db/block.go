@@ -233,7 +233,7 @@ func generateInsertCmdForTxAttrs(attrs []*models.TransactionAttribute) string {
 
 	columns := []string{
 		"`transaction_hash`",
-		"`type`",
+		"`body`",
 	}
 
 	var strBuilder strings.Builder
@@ -242,7 +242,7 @@ func generateInsertCmdForTxAttrs(attrs []*models.TransactionAttribute) string {
 	for _, attr := range attrs {
 		strBuilder.WriteString(fmt.Sprintf("('%s', '%s'),",
 			attr.TransactionHash,
-			attr.Type,
+			attr.Body,
 		))
 	}
 

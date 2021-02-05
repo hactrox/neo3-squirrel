@@ -4,6 +4,7 @@ import (
 	"encoding/json"
 	"math/big"
 	"neo3-squirrel/rpc"
+	"neo3-squirrel/util/convert"
 	"neo3-squirrel/util/log"
 )
 
@@ -110,7 +111,7 @@ func ParseApplicationLog(blockIndex uint, blockTime uint64, appLog *rpc.Applicat
 				Trigger:     exec.Trigger,
 				VMState:     exec.VMState,
 				Exception:   exec.Exception,
-				GasConsumed: exec.GasConsumed,
+				GasConsumed: convert.AmountReadable(exec.GasConsumed, 8),
 				Stack:       parseNotiStack(exec),
 				N:           uint(notiIdx),
 				Contract:    rawNoti.Contract,

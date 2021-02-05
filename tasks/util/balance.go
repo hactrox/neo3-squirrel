@@ -123,6 +123,7 @@ func generateNEP17BalanceOfScript(address, contract string) (string, error) {
 
 	// 0c 14 [addrSC]
 	// 11 c0
+	// 1f
 	// 0c 09 62616c616e63654f66(balanceOf)
 	// 0c 14 [assetID]
 	// 41 627d5b52(System.Contract.Call)
@@ -130,6 +131,7 @@ func generateNEP17BalanceOfScript(address, contract string) (string, error) {
 	strBuilder.WriteString("0c14")
 	strBuilder.WriteString(hex.EncodeToString(addrBytes))
 	strBuilder.WriteString("11c0")
+	strBuilder.WriteString("1f")
 	strBuilder.WriteString("0c0962616c616e63654f66")
 	strBuilder.WriteString("0c14")
 	strBuilder.WriteString(hex.EncodeToString(convert.ReverseBytes(contractBytes)))

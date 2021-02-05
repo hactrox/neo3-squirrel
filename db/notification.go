@@ -36,7 +36,7 @@ func InsertAppLogNotifications(notis, csNotis []*models.Notification) {
 			return err
 		}
 
-		insertCSNotiCmd := generateCSNotiInsertCmd(len(notis))
+		insertCSNotiCmd := generateCSNotiInsertCmd(len(csNotis))
 		if err := insertAppLogNotifications(sqlTx, insertCSNotiCmd, csNotis); err != nil {
 			return err
 		}
@@ -46,7 +46,7 @@ func InsertAppLogNotifications(notis, csNotis []*models.Notification) {
 }
 
 func insertAppLogNotifications(sqlTx *sql.Tx, cmd string, notis []*models.Notification) error {
-	if len(notis) == 0 {
+	if len(notis) == 0 || cmd == "" {
 		return nil
 	}
 
@@ -88,6 +88,10 @@ func generateCSNotiInsertCmd(notiCount int) string {
 }
 
 func generateNotificationInsertCmd(tableName string, notiCount int) string {
+	if notiCount == 0 {
+		return ""
+	}
+
 	var strBuilder strings.Builder
 	strBuilder.WriteString(fmt.Sprintf("INSERT INTO `%s`", tableName))
 	strBuilder.WriteString(fmt.Sprintf("(%s)", strings.Join(appLogNotiColumns[1:], ", ")))

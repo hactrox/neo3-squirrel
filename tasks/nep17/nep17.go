@@ -69,7 +69,7 @@ func StartNEP17TransferSyncTask() {
 
 func fetchNotifications(nextNotiPK uint, transferChan chan<- *notiTransfer) {
 	for {
-		notis := db.GetNotificationsGroupedByHash(nextNotiPK, 100)
+		notis := db.GetNotificationsGroupedByHash(nextNotiPK, 200)
 		if len(notis) == 0 {
 			time.Sleep(1 * time.Second)
 			continue
@@ -225,7 +225,7 @@ func queryNEP17AssetInfo(noti *models.Notification, contract string) *models.Ass
 		return nil
 	}
 
-	if contract == models.GAS && bestBlockIndex > 0 {
+	if contract == models.GASContract && bestBlockIndex > 0 {
 		gas.CacheGASTotalSupply(uint(bestBlockIndex), asset.TotalSupply)
 	}
 

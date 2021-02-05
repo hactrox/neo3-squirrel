@@ -24,7 +24,7 @@ func updateGASTotalSupply(transfers []*models.Transfer) *big.Float {
 		return nil
 	}
 
-	gasTotalSupply, ok := util.QueryAssetTotalSupply(uint(bestBlock), models.GAS, 8)
+	gasTotalSupply, ok := util.QueryAssetTotalSupply(uint(bestBlock), models.GASContract, 8)
 	if !ok {
 		return nil
 	}

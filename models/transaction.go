@@ -1,8 +1,11 @@
 package models
 
 import (
+	"encoding/json"
 	"math/big"
 	"neo3-squirrel/rpc"
+	"neo3-squirrel/util/convert"
+	"neo3-squirrel/util/log"
 )
 
 // TxBulk contains splited tx structure for bulk persistant.
@@ -42,7 +45,7 @@ type TransactionSigner struct {
 // TransactionAttribute represents attribute structure of tx.
 type TransactionAttribute struct {
 	TransactionHash string
-	Type            string
+	Body            []byte
 }
 
 // TransactionWitness represents witness structure of tx.
@@ -87,8 +90,8 @@ func appendTx(txs []*Transaction, blockIndex uint, blockTime uint64, rawTx *rpc.
 		Version:         rawTx.Version,
 		Nonce:           rawTx.Nonce,
 		Sender:          rawTx.Sender,
-		SysFee:          rawTx.SysFee,
-		NetFee:          rawTx.NetFee,
+		SysFee:          convert.AmountReadable(rawTx.SysFee, 8),
+		NetFee:          convert.AmountReadable(rawTx.NetFee, 8),
 		ValidUntilBlock: rawTx.ValidUntilBlock,
 		Script:          rawTx.Script,
 	}
@@ -112,15 +115,17 @@ func appendTxSigners(signers []*TransactionSigner, rawTx *rpc.Tx) []*Transaction
 }
 
 func appendTxAttrs(attrs []*TransactionAttribute, rawTx *rpc.Tx) []*TransactionAttribute {
-	for _, rawAttr := range rawTx.Attributes {
-		attr := TransactionAttribute{
-			TransactionHash: rawTx.Hash,
-			Type:            rawAttr.Type,
-		}
-
-		attrs = append(attrs, &attr)
+	txAttrsBytes := marshalTxAttributes(rawTx.Attributes)
+	if string(txAttrsBytes) == "[]" {
+		return attrs
 	}
 
+	attr := TransactionAttribute{
+		TransactionHash: rawTx.Hash,
+		Body:            txAttrsBytes,
+	}
+
+	attrs = append(attrs, &attr)
 	return attrs
 }
 
@@ -136,4 +141,13 @@ func appendTxWitnesses(witnesses []*TransactionWitness, rawTx *rpc.Tx) []*Transa
 	}
 
 	return witnesses
+}
+
+func marshalTxAttributes(txAttrs interface{}) []byte {
+	dat, err := json.Marshal(txAttrs)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return dat
 }

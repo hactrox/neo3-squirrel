@@ -6,6 +6,7 @@ import (
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/log"
 	"neo3-squirrel/util/timeutil"
+	"strings"
 )
 
 func showContractDBState(cs *models.ContractState) {
@@ -23,10 +24,10 @@ func showContractDBState(cs *models.ContractState) {
 		msg = "Unknown Contract state:"
 	}
 
-	msg += fmt.Sprintf(" %s %s %-17s", blockInfo, cs.Hash, cs.Manifest.Name)
+	msg += fmt.Sprintf(" %s %s %s", blockInfo, cs.Hash, cs.Manifest.Name)
 
 	if len(cs.Manifest.SupportedStandards) > 0 {
-		msg += fmt.Sprintf(", support=%v", cs.Manifest.SupportedStandards)
+		msg += fmt.Sprintf(", support=[%s]", strings.Join(cs.Manifest.SupportedStandards, ", "))
 	}
 
 	msg = color.BCyan(msg)

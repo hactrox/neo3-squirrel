@@ -29,7 +29,7 @@ func showTransfers(transfers []*models.Transfer) {
 
 		if len(from) == 0 {
 			// Claim GAS.
-			if contractHash == models.GAS {
+			if contractHash == models.GASContract {
 				content := fmt.Sprintf("%s System Reward: %s + %s", blockInfo, to, amountWithUnit)
 				msg = color.Greenf(content)
 			} else {

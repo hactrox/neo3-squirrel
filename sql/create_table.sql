@@ -71,7 +71,7 @@ CREATE TABLE IF NOT EXISTS `transaction_attribute`
 (
     `id`            INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
     `transaction_hash`  CHAR(66)  NOT NULL,
-    `type`           VARCHAR(32)  NOT NULL
+    `body`                  JSON  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 

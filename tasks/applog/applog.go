@@ -156,15 +156,28 @@ func processLastBlockNotifications(lastNoti *models.Notification) {
 		block.SetTxs(db.GetBlockTxs(blockIndex))
 	}
 
-	start := false
+	txs := block.GetTxs()
+	if len(txs) == 0 {
+		return
+	}
 
-	for _, tx := range block.GetTxs() {
-		if !start && tx.Hash != lastNoti.Hash {
-			continue
+	txsToAdd := []*models.Transaction{}
+
+	for i := len(txs) - 1; i >= 0; i-- {
+		tx := txs[i]
+		if tx.Hash == lastNoti.Hash {
+			break
 		}
 
-		start = true
-		preAppLogPushTx(tx)
+		txsToAdd = append(txsToAdd, tx)
+	}
+
+	if len(txsToAdd) == 0 {
+		return
+	}
+
+	for i := len(txsToAdd) - 1; i >= 0; i-- {
+		preAppLogPushTx(txsToAdd[i])
 	}
 }
 
