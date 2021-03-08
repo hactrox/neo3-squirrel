@@ -87,7 +87,6 @@ func GetBlock(index uint) *models.Block {
 		&block.Time,
 		&block.Index,
 		&block.Primary,
-		&block.Index,
 		&block.NextConsensus,
 	)
 	if err != nil {
