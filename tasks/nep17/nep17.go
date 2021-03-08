@@ -225,7 +225,7 @@ func queryNEP17AssetInfo(noti *models.Notification, contract string) *models.Ass
 		return nil
 	}
 
-	if contract == models.GASContract && bestBlockIndex > 0 {
+	if contract == models.GasToken && bestBlockIndex > 0 {
 		gas.CacheGASTotalSupply(uint(bestBlockIndex), asset.TotalSupply)
 	}
 

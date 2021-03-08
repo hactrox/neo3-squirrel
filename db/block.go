@@ -19,10 +19,8 @@ var blockColumns = []string{
 	"`txs`",
 	"`time`",
 	"`index`",
+	"`primary`",
 	"`nextconsensus`",
-	"`consensusdata_primary`",
-	"`consensusdata_nonce`",
-	"`nextblockhash`",
 }
 
 // InsertBlock inserts bulk blocks into database.
@@ -88,10 +86,9 @@ func GetBlock(index uint) *models.Block {
 		&block.Txs,
 		&block.Time,
 		&block.Index,
+		&block.Primary,
+		&block.Index,
 		&block.NextConsensus,
-		&block.ConsensusDataPrimary,
-		&block.ConsensusDataNonce,
-		&block.NextBlockHash,
 	)
 	if err != nil {
 		if mysql.IsRecordNotFoundError(err) {
@@ -114,7 +111,7 @@ func generateInsertCmdForBlocks(blocks []*models.Block) string {
 	strBuilder.WriteString(fmt.Sprintf("INSERT INTO `block` (%s) VALUES ", strings.Join(blockColumns[1:], ", ")))
 
 	for _, b := range blocks {
-		strBuilder.WriteString(fmt.Sprintf("('%s', %d, %d, '%s', '%s', %d, %d, %d, '%s', %d, '%s', '%s'),",
+		strBuilder.WriteString(fmt.Sprintf("('%s', %d, %d, '%s', '%s', %d, %d, %d, %d, '%s'),",
 			b.Hash,
 			b.Size,
 			b.Version,
@@ -123,10 +120,8 @@ func generateInsertCmdForBlocks(blocks []*models.Block) string {
 			b.Txs,
 			b.Time,
 			b.Index,
+			b.Primary,
 			b.NextConsensus,
-			b.ConsensusDataPrimary,
-			b.ConsensusDataNonce,
-			b.NextBlockHash,
 		))
 	}
 

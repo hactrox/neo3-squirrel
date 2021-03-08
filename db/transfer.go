@@ -54,7 +54,7 @@ func InsertNEP17Transfers(transfers []*models.Transfer,
 
 		// Update GAS total supply if it changed.
 		if newGASTotalSupply != nil {
-			if err := updateContractTotalSupply(sqlTx, models.GASContract, newGASTotalSupply); err != nil {
+			if err := updateContractTotalSupply(sqlTx, models.GasToken, newGASTotalSupply); err != nil {
 				return err
 			}
 		}
@@ -214,7 +214,7 @@ func updateNEP17Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 
 		if addrAssetRec == nil {
 			insertsStrBuilder.WriteString(fmt.Sprintf(", ('%s', '%s', %s, %d)",
-				contract, address, convert.BigFloatToString(balance), newTransfers))
+				address, contract, convert.BigFloatToString(balance), newTransfers))
 			continue
 		}
 
@@ -227,7 +227,7 @@ func updateNEP17Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 			"UPDATE `addr_asset`",
 			fmt.Sprintf("SET `balance`=%s", convert.BigFloatToString(balance)),
 			fmt.Sprintf(", `transfers`=`transfers`+%d", newTransfers),
-			fmt.Sprintf("WHERE `contract`='%s' AND `address`='%s'", contract, address),
+			fmt.Sprintf("WHERE `address`='%s' AND `contract`='%s'", address, contract),
 			"LIMIT 1",
 		}
 
@@ -257,7 +257,7 @@ func getNEP17AddrAssetRecord(sqlTx *sql.Tx, address, contract string) (*models.A
 	query := []string{
 		fmt.Sprintf("SELECT %s", strings.Join(addrAssetColumns, ", ")),
 		"FROM `addr_asset`",
-		fmt.Sprintf("WHERE `contract` = '%s' AND `address` = '%s'", contract, address),
+		fmt.Sprintf("WHERE `address` = '%s' AND `contract` = '%s'", address, contract),
 		"LIMIT 1",
 	}
 
@@ -265,8 +265,8 @@ func getNEP17AddrAssetRecord(sqlTx *sql.Tx, address, contract string) (*models.A
 	var balanceStr string
 	err := mysql.QueryRow(mysql.Compose(query), nil,
 		&addrAsset.ID,
-		&addrAsset.Contract,
 		&addrAsset.Address,
+		&addrAsset.Contract,
 		&balanceStr,
 		&addrAsset.Transfers,
 	)

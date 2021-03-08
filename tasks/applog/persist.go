@@ -19,7 +19,7 @@ func persistApplicationLogs(appLogChan <-chan *appLogInfo) {
 		// Persist contract management notificatoins.
 		csNotis := []*models.Notification{}
 		for _, noti := range notis {
-			if noti.Contract == models.ManagementContract {
+			if noti.Contract == models.ContractManagement {
 				csNotis = append(csNotis, noti)
 			}
 		}

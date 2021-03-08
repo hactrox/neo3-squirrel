@@ -27,8 +27,8 @@ var assetColumns = []string{
 
 var addrAssetColumns = []string{
 	"`id`",
-	"`contract`",
 	"`address`",
+	"`contract`",
 	"`balance`",
 	"`transfers`",
 }

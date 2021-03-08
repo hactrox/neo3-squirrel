@@ -22,10 +22,8 @@ CREATE TABLE IF NOT EXISTS `block`
     `txs`                 INT UNSIGNED  NOT NULL,
     `time`             BIGINT UNSIGNED  NOT NULL,
     `index`               INT UNSIGNED  NOT NULL UNIQUE,
-    `nextconsensus`           CHAR(66)  NOT NULL,
-    `consensusdata_primary`   SMALLINT  NOT NULL,
-    `consensusdata_nonce`  VARCHAR(16)  NOT NULL,
-    `nextblockhash`           CHAR(66)  NOT NULL
+    `primary`             INT UNSIGNED  NOT NULL,
+    `nextconsensus`           CHAR(66)  NOT NULL
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 
@@ -153,13 +151,13 @@ CREATE TABLE IF NOT EXISTS `transfer`
 CREATE TABLE IF NOT EXISTS `addr_asset`
 (
     `id`          INT UNSIGNED  NOT NULL AUTO_INCREMENT PRIMARY KEY,
-    `contract`        CHAR(42)  NOT NULL,
     `address`         CHAR(34)  NOT NULL,
+    `contract`        CHAR(42)  NOT NULL,
     `balance`  DECIMAL(65, 30)  NOT NULL,
     `transfers`   INT UNSIGNED  NOT NULL,
 
-    INDEX `idx_contract` (`contract`),
-    INDEX `idx_address` (`address`)
+    INDEX `idx_address` (`address`),
+    INDEX `idx_contract` (`contract`)
 ) ENGINE = InnoDB DEFAULT CHARSET = 'utf8mb4';
 
 

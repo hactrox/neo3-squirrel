@@ -12,26 +12,19 @@ type BlockResponse struct {
 	Result *Block `json:"result"`
 }
 
-// ConsensusData is the raw consensus data for the block.
-type ConsensusData struct {
-	Primary uint64 `json:"primary"`
-	Nonce   string `json:"nonce"`
-}
-
 // Block is the raw block structure used in rpc response.
 type Block struct {
-	Hash              string        `json:"hash"`
-	Size              int           `json:"size"`
-	Version           uint          `json:"version"`
-	PreviousBlockHash string        `json:"previousblockhash"`
-	MerkleRoot        string        `json:"merkleroot"`
-	Time              uint64        `json:"time"`
-	Index             uint          `json:"index"`
-	NextConsensus     string        `json:"nextconsensus"`
-	Witnesses         []Witness     `json:"witnesses"`
-	ConsensusData     ConsensusData `json:"consensusdata"`
-	Tx                []Tx          `json:"tx"`
-	NextBlockHash     string        `json:"nextblockhash"`
+	Hash              string    `json:"hash"`
+	Size              int       `json:"size"`
+	Version           uint      `json:"version"`
+	PreviousBlockHash string    `json:"previousblockhash"`
+	MerkleRoot        string    `json:"merkleroot"`
+	Time              uint64    `json:"time"`
+	Index             uint      `json:"index"`
+	Primary           uint      `json:"primary"`
+	NextConsensus     string    `json:"nextconsensus"`
+	Witnesses         []Witness `json:"witnesses"`
+	Tx                []Tx      `json:"tx"`
 }
 
 // SyncBlock from rpc server.
