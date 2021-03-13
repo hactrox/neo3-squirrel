@@ -43,6 +43,24 @@ func InsertContract(contract *models.ContractState, notiPK uint) {
 			return err
 		}
 
+		// Sometimes contract transfer can be persisted
+		// earlier than the contract insertion.
+		assetExists, err := assetExists(sqlTx, contract.Hash)
+		if err != nil {
+			return err
+		}
+
+		if assetExists {
+			if err := updateAssetDeployInfo(sqlTx,
+				contract.Hash,
+				contract.BlockIndex,
+				contract.BlockTime,
+				contract.TxID,
+			); err != nil {
+				return err
+			}
+		}
+
 		return updateContractNotiPK(sqlTx, notiPK)
 	})
 }
@@ -59,9 +77,9 @@ func UpdateContract(contract *models.ContractState, notiPK uint, contractHash st
 }
 
 // DeleteContract deletes contract from db.
-func DeleteContract(contractID uint, notiPK uint) {
+func DeleteContract(contractHash string, notiPK uint) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
-		if err := deleteContract(sqlTx, contractID); err != nil {
+		if err := deleteContract(sqlTx, contractHash); err != nil {
 			return err
 		}
 
@@ -152,10 +170,10 @@ func updateContract(sqlTx *sql.Tx, contract *models.ContractState, contractHash 
 	return err
 }
 
-func deleteContract(sqlTx *sql.Tx, contractID uint) error {
+func deleteContract(sqlTx *sql.Tx, contractHash string) error {
 	query := []string{
 		"DELETE FROM `contract`",
-		fmt.Sprintf("WHERE `id` = %d", contractID),
+		fmt.Sprintf("WHERE `hash` = '%s'", contractHash),
 		"LIMIT 1",
 	}
 
@@ -178,6 +196,18 @@ func GetAllNativeContracts() []*models.ContractState {
 	}
 
 	return getContractQuery(query)
+}
+
+// GetContract returns the contract of the given hash.
+func GetContract(hash string) *models.ContractState {
+	query := []string{
+		fmt.Sprintf("SELECT %s", strings.Join(contractColumns, ", ")),
+		"FROM `contract`",
+		fmt.Sprintf("WHERE `hash` = '%s'", hash),
+		"LIMIT 1",
+	}
+
+	return getContractQueryRow(query)
 }
 
 // GetLastContract returns the last contract from db.

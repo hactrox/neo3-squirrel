@@ -41,7 +41,7 @@ func InsertNEP17Transfers(transfers []*models.Transfer,
 		}
 
 		// Update balances.
-		if err := updateNEP17Balances(sqlTx, addrAssets); err != nil {
+		if err := updateNEP17Balances(sqlTx, addrAssets, false); err != nil {
 			return err
 		}
 
@@ -66,7 +66,7 @@ func InsertNEP17Transfers(transfers []*models.Transfer,
 // PersistNEP17Balances inserts and updates address contract balances.
 func PersistNEP17Balances(addrAssets []*models.AddrAsset) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
-		updateNEP17Balances(sqlTx, addrAssets)
+		updateNEP17Balances(sqlTx, addrAssets, true)
 		return nil
 	})
 }
@@ -85,10 +85,10 @@ func updateAssetAddressesTransfers(sqlTx *sql.Tx, addrAssets []*models.AddrAsset
 		address := addrAsset.Address
 		balance := addrAsset.Balance
 
-		originBalance := GetAddrAssetBalance(address, contract)
-
+		originBalance := getAddrAssetBalance(sqlTx, address, contract)
 		zero := convert.Zero
-		// New address holding this asset. addresses += 1
+
+		// New address holds this asset. addresses += 1
 		if originBalance.Cmp(zero) == 0 && balance.Cmp(zero) > 0 {
 			addressesChangeDelta[contract]++
 		} else if originBalance.Cmp(zero) > 0 && balance.Cmp(zero) == 0 {
@@ -178,7 +178,7 @@ func insertNEP17Transfer(sqlTx *sql.Tx, transfers []*models.Transfer) error {
 	return err
 }
 
-func updateNEP17Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
+func updateNEP17Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset, updateAssetAddrDelta bool) error {
 	if len(addrAssets) == 0 {
 		return nil
 	}
@@ -200,6 +200,11 @@ func updateNEP17Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 	var insertsStrBuilder strings.Builder
 	var updatesStrBuilder strings.Builder
 
+	// If contract asset balance not updated from transfer,
+	// but from other events(e.g. Mint), then the `addresses`
+	// column of table `asset` must be updated.
+	addrCntDelta := map[string]int{} // map[contractHash]delta
+
 	for _, addrAsset := range addrAssets {
 		contract := addrAsset.Contract
 		address := addrAsset.Address
@@ -210,6 +215,18 @@ func updateNEP17Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 		addrAssetRec, err := getNEP17AddrAssetRecord(sqlTx, address, contract)
 		if err != nil {
 			return err
+		}
+
+		if updateAssetAddrDelta {
+			zero := convert.Zero
+			if balance.Cmp(zero) > 0 {
+				if addrAssetRec == nil || addrAssetRec.Balance.Cmp(zero) == 0 {
+					addrCntDelta[contract]++
+				}
+			} else if balance.Cmp(zero) == 0 &&
+				addrAssetRec != nil && addrAssetRec.Balance.Cmp(zero) > 0 {
+				addrCntDelta[contract]--
+			}
 		}
 
 		if addrAssetRec == nil {
@@ -228,6 +245,17 @@ func updateNEP17Balances(sqlTx *sql.Tx, addrAssets []*models.AddrAsset) error {
 			fmt.Sprintf("SET `balance`=%s", convert.BigFloatToString(balance)),
 			fmt.Sprintf(", `transfers`=`transfers`+%d", newTransfers),
 			fmt.Sprintf("WHERE `address`='%s' AND `contract`='%s'", address, contract),
+			"LIMIT 1",
+		}
+
+		updatesStrBuilder.WriteString(strings.Join(updateSQL, " ") + ";")
+	}
+
+	for contractHash, delta := range addrCntDelta {
+		updateSQL := []string{
+			"UPDATE `asset`",
+			fmt.Sprintf("SET `addresses` = `addresses` + %d", delta),
+			fmt.Sprintf("WHERE `contract`='%s'", contractHash),
 			"LIMIT 1",
 		}
 

@@ -74,6 +74,10 @@ type ContractManifest struct {
 
 // ParseContractState parses struct *rpc.ContractState to *models.ContractState.
 func ParseContractState(blockIndex uint, blockTime uint64, creator, txID string, rawCS *rpc.ContractState) *ContractState {
+	if rawCS == nil {
+		return nil
+	}
+
 	cs := &ContractState{
 		BlockIndex:    blockIndex,
 		BlockTime:     blockTime,

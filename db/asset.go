@@ -78,8 +78,7 @@ func GetAllAssets() []*models.Asset {
 	return assets
 }
 
-// GetAddrAssetBalance returns asset balance of the given address.
-func GetAddrAssetBalance(addr, assetHash string) *big.Float {
+func getAddrAssetBalance(sqlTx *sql.Tx, addr, assetHash string) *big.Float {
 	query := []string{
 		"SELECT `balance`",
 		"FROM `addr_asset`",
@@ -89,7 +88,7 @@ func GetAddrAssetBalance(addr, assetHash string) *big.Float {
 	}
 
 	var balanceStr string
-	err := mysql.QueryRow(mysql.Compose(query), nil, &balanceStr)
+	err := sqlTx.QueryRow(mysql.Compose(query)).Scan(&balanceStr)
 	if err != nil {
 		if mysql.IsRecordNotFoundError(err) {
 			return convert.Zero
@@ -139,6 +138,24 @@ func GetAsset(assetHash string) *models.Asset {
 	asset.TotalSupply = convert.ToDecimal(totalSupplyStr)
 
 	return &asset
+}
+
+func updateAssetDeployInfo(sqlTx *sql.Tx, assetHash string, blockIndex uint, blockTime uint64, txID string) error {
+	query := []string{
+		"UPDATE `asset`",
+		fmt.Sprintf("SET `block_index` = %d", blockIndex),
+		fmt.Sprintf(", `block_time` = %d", blockTime),
+		fmt.Sprintf(", `txid` = '%s'", txID),
+		fmt.Sprintf("WHERE `contract` = '%s'", assetHash),
+		"LIMIT 1",
+	}
+
+	_, err := sqlTx.Exec(mysql.Compose(query))
+	if err != nil {
+		log.Error(err)
+	}
+
+	return err
 }
 
 // DestroyAsset deletes asset and its related data.
@@ -211,7 +228,7 @@ func InsertNewAsset(asset *models.Asset) {
 
 	mysql.Trans(func(sqlTx *sql.Tx) error {
 		// Check if this asset already been added.
-		exists, err := contractExists(sqlTx, asset.Contract)
+		exists, err := assetExists(sqlTx, asset.Contract)
 		if err != nil {
 			return err
 		}
@@ -224,12 +241,12 @@ func InsertNewAsset(asset *models.Asset) {
 	})
 }
 
-func contractExists(sqlTx *sql.Tx, contract string) (bool, error) {
+func assetExists(sqlTx *sql.Tx, assetHash string) (bool, error) {
 	query := []string{
 		"SELECT EXISTS(",
 		"SELECT `id`",
 		"FROM `asset`",
-		fmt.Sprintf("WHERE `contract` = '%s'", contract),
+		fmt.Sprintf("WHERE `contract` = '%s'", assetHash),
 		"LIMIT 1)",
 	}
 

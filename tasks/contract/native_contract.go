@@ -15,15 +15,23 @@ func persistNativeContracts() {
 		log.Panicf("Failed to get genesis block from Fullnode RPC")
 	}
 
+	blockIndex := genesisBlock.Index
+	blockTime := genesisBlock.Time
+
 	for _, contractHash := range nativeContractHashes {
 		RawContractState := rpc.GetContractState(0, contractHash)
 		if RawContractState == nil {
 			log.Panicf("Failed to get contract state of hash %s", contractHash)
 		}
 
-		contractState := models.ParseContractState(genesisBlock.Index, genesisBlock.Time, "", "", RawContractState)
-		db.InsertNativeContract(contractState)
+		cs := models.ParseContractState(blockIndex, blockTime, "", "", RawContractState)
+		db.InsertNativeContract(cs)
 
-		showContractDBState(contractState)
+		showContractDBState(
+			blockIndex,
+			blockTime,
+			contractHash,
+			string(models.ContractDeployEvent), cs,
+		)
 	}
 }

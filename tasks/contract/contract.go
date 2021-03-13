@@ -54,11 +54,11 @@ func handleCsNoti(csNoti *models.Notification) bool {
 		return false
 	}
 
+	// Attention:
+	// `rawContractState` can be nil if it was deleted already,
+	// or won't be nil if contract A destroyed and
+	// then redeploy again(got the same contract hash).
 	rawContractState := rpc.GetContractState(csNoti.BlockIndex, contractHash)
-	if rawContractState == nil {
-		// This contract may be deleted so we cannot get contract state from rpc.
-		return false
-	}
 
 	// Get sender from transaction detail.
 	tx := db.GetTransaction(csNoti.Hash)
@@ -80,12 +80,12 @@ func handleCsNoti(csNoti *models.Notification) bool {
 	case models.ContractUpdateEvent:
 		updateContract(contractState, csNoti.ID, contractHash)
 	case models.ContractDestroyEvent:
-		deleteContract(contractState.ID, csNoti.ID)
+		deleteContract(contractHash, csNoti.ID)
 	default:
 		log.Panicf("Unsupported contract notification eventname: %s", csNoti.EventName)
 	}
 
-	showContractDBState(contractState)
+	showContractDBState(csNoti.BlockIndex, csNoti.BlockTime, contractHash, csNoti.EventName, contractState)
 
 	return true
 }
@@ -100,6 +100,6 @@ func updateContract(contractState *models.ContractState, csNotiID uint, contract
 	db.UpdateContract(contractState, csNotiID, contractHash)
 }
 
-func deleteContract(csID uint, csNotiID uint) {
-	db.DeleteContract(csID, csNotiID)
+func deleteContract(contractHash string, csNotiID uint) {
+	db.DeleteContract(contractHash, csNotiID)
 }

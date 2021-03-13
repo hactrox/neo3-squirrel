@@ -169,6 +169,15 @@ func parseNEP17Transfer(noti *models.Notification) *models.Transfer {
 			return nil
 		}
 
+		// Query contract info to determine the actual
+		// asset deployed txID, blockIndex and blockTime.
+		contractInfo := db.GetContract(assetHash)
+		if contractInfo != nil {
+			nep17.TxID = contractInfo.TxID
+			nep17.BlockIndex = contractInfo.BlockIndex
+			nep17.BlockTime = contractInfo.BlockTime
+		}
+
 		db.InsertNewAsset(nep17)
 
 		asset.Update(nep17)
@@ -205,23 +214,27 @@ func parseNEP17Transfer(noti *models.Notification) *models.Transfer {
 }
 
 func queryNEP17AssetInfo(noti *models.Notification, contract string) *models.Asset {
-	minBlockIndex := noti.BlockIndex
+	blockIndex := noti.BlockIndex
+
+	// Get and save contract manifest.
+	contractState := rpc.GetContractState(blockIndex, contract)
+	if contractState == nil {
+		return nil
+	}
+
 	asset := models.Asset{
-		BlockIndex: minBlockIndex,
+		BlockIndex: blockIndex,
 		BlockTime:  noti.BlockTime,
 		TxID:       noti.Hash,
 		Contract:   contract,
+		Name:       contractState.Manifest.Name,
 	}
 
-	// Get and save contract manifest.
-	contractState := rpc.GetContractState(noti.BlockIndex, contract)
-	asset.Name = contractState.Manifest.Name
-
 	bestBlockIndex := rpc.GetBestHeight()
-	ok := util.QueryAssetBasicInfo(minBlockIndex, &asset)
+	ok := util.QueryAssetBasicInfo(blockIndex, &asset)
 	if !ok {
 		log.Warnf("Failed to get NEP17 contract info. Hash=%s(%s), Contract=%s, BlockIndex=%d, BlockTime=%s",
-			noti.Hash, noti.Src, contract, noti.BlockIndex, timeutil.FormatBlockTime(noti.BlockTime))
+			noti.Hash, noti.Src, contract, blockIndex, timeutil.FormatBlockTime(noti.BlockTime))
 		return nil
 	}
 
