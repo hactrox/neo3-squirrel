@@ -3,28 +3,28 @@ UNION ALL
 SELECT 'check counter field `block_index`', IF(
     (SELECT COUNT(`index`) FROM `block`) -
     (SELECT `block_index` FROM `counter`) = 1
-, 'PASS', 'FAIL')
+, 'PASS', '[FAIL]')
 
 UNION ALL
 
 SELECT 'check counter field `tx_count`', IF(
     (SELECT IFNULL((SELECT COUNT(`id`) FROM `transaction`), 0)) -
     (SELECT `tx_count` FROM `counter`) = 0
-, 'PASS', 'FAIL')
+, 'PASS', '[FAIL]')
 
 UNION ALL
 
 SELECT 'check counter field `addr_count`', IF(
     (SELECT IFNULL((SELECT COUNT(`id`) FROM `address`), 0)) -
     (SELECT `addr_count` FROM `counter`) = 0
-, 'PASS', 'FAIL')
+, 'PASS', '[FAIL]')
 
 UNION ALL
 
 SELECT 'check transaction count', IF(
     (SELECT IFNULL((SELECT SUM(`txs`) FROM `block`), 0)) -
     (SELECT COUNT(`id`) FROM `transaction`) = 0
-, 'PASS', 'FAIL')
+, 'PASS', '[FAIL]')
 
 UNION ALL
 
@@ -44,7 +44,7 @@ SELECT 'check address first tx time', IF(
         JOIN `address` ON `cal`.addr=`address`.`address`
         WHERE `cal`.`block_time` <> `address`.first_tx_time
     )
-, 'PASS', 'FAIL')
+, 'PASS', '[FAIL]')
 
 UNION ALL
 
@@ -64,7 +64,7 @@ SELECT 'check address last tx time', IF(
         JOIN `address` ON `cal`.addr=`address`.`address`
         WHERE `cal`.`block_time` <> `address`.`last_tx_time`
     )
-, 'PASS', 'FAIL')
+, 'PASS', '[FAIL]')
 
 UNION ALL
 
@@ -76,7 +76,7 @@ SELECT 'check assets', IF(
            SELECT `contract` FROM `asset`
         )
    )
-, 'PASS', 'FAIL')
+, 'PASS', '[FAIL]')
 
 UNION ALL
 
@@ -110,7 +110,7 @@ SELECT 'check addr asset transfers', IF(
             ON `cal`.`address` = `tbl`.`addr`
         WHERE `cal`.`transfers` <> `tbl`.transfers
     )
-, 'PASS', 'FAIL')
+, 'PASS', '[FAIL]')
 
 UNION ALL
 
@@ -138,7 +138,7 @@ SELECT 'check NEO & GAS transfers total amount balance', IF(
         ON `addr_asset`.`address`=aa.`addr` AND `addr_asset`.`contract`=`aa`.`contract`
         WHERE `addr_asset`.`balance` != `aa`.`balance`
     )
-, 'PASS', 'FAIL')
+, 'PASS', '[FAIL]')
 
 UNION  ALL
 
@@ -153,7 +153,7 @@ SELECT 'check asset addresses', IF(
         ON a.`contract` = `asset`.contract
         WHERE a.addresses != `asset`.addresses
     )
-, 'PASS', 'FAIL')
+, 'PASS', '[FAIL]')
 
 UNION ALL
 
@@ -167,4 +167,4 @@ SELECT 'check asset transfers', IF(
         ON a.`contract` = `asset`.contract
         WHERE a.transfers != `asset`.transfers
     )
-, 'PASS', 'FAIL');
+, 'PASS', '[FAIL]');
