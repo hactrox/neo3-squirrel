@@ -17,7 +17,6 @@ const (
 	PolicyContract     = "0xcc5e4edd9f5f8dba8bb65734541df7a1c081c67b"
 	RoleManagement     = "0x49cf4e5378ffcd4dec034fd98a174c5491e395e2"
 	OracleContract     = "0xfe924b7cfe89ddd271abaf7210a80a7e11178758"
-	NameService        = "0x7a8fcf0392cd625647907afa8e45cc66872b596b"
 )
 
 // NativeContractHashes returns all 6 Neo3 native contracts.
@@ -32,7 +31,6 @@ func NativeContractHashes() []string {
 		PolicyContract,
 		RoleManagement,
 		OracleContract,
-		NameService,
 	}
 }
 
@@ -54,17 +52,27 @@ type ContractState struct {
 	Creator       string
 	TxID          string
 	ContractID    int
-	Hash          string
-	State         string
 	UpdateCounter uint
+	Hash          string
+	NEF           NEF
+	State         string
 	Script        string
 	Manifest      ContractManifest
+}
+
+type NEF struct {
+	Magic    uint64
+	Compiler string
+	Tokens   []byte
+	Script   string
+	CheckSum uint64
 }
 
 // ContractManifest db model.
 type ContractManifest struct {
 	Name               string
 	Groups             []byte
+	Features           []byte
 	SupportedStandards []string
 	ABI                []byte
 	Permissions        []byte
@@ -84,15 +92,23 @@ func ParseContractState(blockIndex uint, blockTime uint64, creator, txID string,
 		Creator:       creator,
 		TxID:          txID,
 		ContractID:    rawCS.ID,
+		UpdateCounter: rawCS.UpdateCounter,
 		Hash:          rawCS.Hash,
 		State:         string(ContractDeployEvent), // Set default state
-		UpdateCounter: rawCS.UpdateCounter,
-		Script:        rawCS.Script,
+	}
+
+	cs.NEF = NEF{
+		Magic:    rawCS.NEF.Magic,
+		Compiler: rawCS.NEF.Compiler,
+		Tokens:   marshalManifestField(rawCS.NEF.Tokens),
+		Script:   rawCS.NEF.Script,
+		CheckSum: rawCS.NEF.CheckSum,
 	}
 
 	cs.Manifest = ContractManifest{
 		Name:               rawCS.Manifest.Name,
 		Groups:             marshalManifestField(rawCS.Manifest.Groups),
+		Features:           marshalManifestField(rawCS.Manifest.Features),
 		SupportedStandards: rawCS.Manifest.SupportedStandards,
 		ABI:                marshalManifestField(rawCS.Manifest.ABI),
 		Permissions:        marshalManifestField(rawCS.Manifest.Permissions),

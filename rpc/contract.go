@@ -39,14 +39,23 @@ type ContractState struct {
 	ID            int              `json:"id"`
 	UpdateCounter uint             `json:"updatecounter"`
 	Hash          string           `json:"hash"`
-	Script        string           `json:"script"`
+	NEF           ContractNEF      `json:"nef"`
 	Manifest      ContractManifest `json:"manifest"`
+}
+
+type ContractNEF struct {
+	Magic    uint64      `json:"magic"`
+	Compiler string      `json:"compiler"`
+	Tokens   interface{} `json:"tokens"`
+	Script   string      `json:"script"`
+	CheckSum uint64      `json:"checksum"`
 }
 
 // ContractManifest represents the manifest struct of contract state.
 type ContractManifest struct {
 	Name               string      `json:"name"`
 	Groups             interface{} `json:"groups"`
+	Features           interface{} `json:"features"`
 	SupportedStandards []string    `json:"supportedstandards"`
 	ABI                interface{} `json:"abi"`
 	Permissions        interface{} `json:"permissions"`
