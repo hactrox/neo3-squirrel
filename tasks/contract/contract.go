@@ -76,7 +76,7 @@ func handleCsNoti(csNoti *models.Notification) bool {
 
 	switch models.EventName(csNoti.EventName) {
 	case models.ContractDeployEvent:
-		insertContract(contractState, csNoti.ID)
+		insertContract(contractState, csNoti, contractHash)
 	case models.ContractUpdateEvent:
 		updateContract(contractState, csNoti.ID, contractHash)
 	case models.ContractDestroyEvent:
@@ -90,9 +90,17 @@ func handleCsNoti(csNoti *models.Notification) bool {
 	return true
 }
 
-func insertContract(contractState *models.ContractState, csNotiID uint) {
+func insertContract(contractState *models.ContractState, csNoti *models.Notification, contractHash string) {
 	contractState.State = string(models.ContractDeployEvent)
-	db.InsertContract(contractState, csNotiID)
+
+	// If this contract matches NEP-17 token standard.
+	var nep17 *models.Asset
+	if supportNEP17(contractState) {
+		// `nep17` can be nil if failed to get info.
+		nep17 = util.QueryNEP17AssetInfo(csNoti, contractHash)
+	}
+
+	db.InsertContract(contractState, csNoti.ID, contractHash, nep17)
 }
 
 func updateContract(contractState *models.ContractState, csNotiID uint, contractHash string) {
@@ -102,4 +110,31 @@ func updateContract(contractState *models.ContractState, csNotiID uint, contract
 
 func deleteContract(contractHash string, csNotiID uint) {
 	db.DeleteContract(contractHash, csNotiID)
+}
+
+func supportNEP17(contractState *models.ContractState) bool {
+	abi := contractState.Manifest.ABI
+
+	abiMethods := map[string]bool{}
+
+	for _, method := range abi.Methods {
+		abiMethods[method.Name] = true
+	}
+
+	// https://github.com/neo-project/proposals/blob/a308ae3eabc240e2e837ababdd2314d0f0587bd8/nep-17.mediawiki
+	requiredMethods := []string{
+		"symbol",
+		"decimals",
+		"totalSupply",
+		"balanceOf",
+		"transfer",
+	}
+
+	for _, requiredMethod := range requiredMethods {
+		if !abiMethods[requiredMethod] {
+			return false
+		}
+	}
+
+	return true
 }

@@ -74,7 +74,7 @@ type ContractManifest struct {
 	Groups             []byte
 	Features           []byte
 	SupportedStandards []string
-	ABI                []byte
+	ABI                *ABI
 	Permissions        []byte
 	Trusts             []byte
 	Extra              []byte
@@ -100,39 +100,58 @@ func ParseContractState(blockIndex uint, blockTime uint64, creator, txID string,
 	cs.NEF = NEF{
 		Magic:    rawCS.NEF.Magic,
 		Compiler: rawCS.NEF.Compiler,
-		Tokens:   marshalManifestField(rawCS.NEF.Tokens),
+		Tokens:   marshalField(rawCS.NEF.Tokens),
 		Script:   rawCS.NEF.Script,
 		CheckSum: rawCS.NEF.CheckSum,
 	}
 
 	cs.Manifest = ContractManifest{
 		Name:               rawCS.Manifest.Name,
-		Groups:             marshalManifestField(rawCS.Manifest.Groups),
-		Features:           marshalManifestField(rawCS.Manifest.Features),
+		Groups:             marshalField(rawCS.Manifest.Groups),
+		Features:           marshalField(rawCS.Manifest.Features),
 		SupportedStandards: rawCS.Manifest.SupportedStandards,
-		ABI:                marshalManifestField(rawCS.Manifest.ABI),
-		Permissions:        marshalManifestField(rawCS.Manifest.Permissions),
-		Trusts:             marshalManifestField(rawCS.Manifest.Trusts),
-		Extra:              marshalManifestField(rawCS.Manifest.Extra),
+		ABI:                unmarshalABI(marshalField(rawCS.Manifest.ABI)),
+		Permissions:        marshalField(rawCS.Manifest.Permissions),
+		Trusts:             marshalField(rawCS.Manifest.Trusts),
+		Extra:              marshalField(rawCS.Manifest.Extra),
 	}
 
 	return cs
 }
 
-// MarshalSupportedStandards is the shortcut of json.Marshal(cs.SupportedStandards).
+// MarshalSupportedStandards is the shortcut of json.Marshal(cs.Manifest.SupportedStandards).
 func (cs *ContractState) MarshalSupportedStandards() []byte {
-	return marshalManifestField(cs.Manifest.SupportedStandards)
+	return marshalField(cs.Manifest.SupportedStandards)
 }
 
-// UnMarshalSupportedStandards is the shortcut of json.Unmarshal(cs.SupportedStandards).
-func (cs *ContractState) UnMarshalSupportedStandards(supportedStandards []byte) {
+// MarshalABI is the shortcut of json.Marshal(cs.Manifest.ABI).
+func (cs *ContractState) MarshalABI() []byte {
+	return marshalField(cs.Manifest.ABI)
+}
+
+// UnmarshalSupportedStandards is the shortcut of json.Unmarshal(cs.Manifest.SupportedStandards).
+func (cs *ContractState) UnmarshalSupportedStandards(supportedStandards []byte) {
 	err := json.Unmarshal(supportedStandards, &cs.Manifest.SupportedStandards)
 	if err != nil {
 		log.Panic(err)
 	}
 }
 
-func marshalManifestField(field interface{}) []byte {
+func (cs *ContractState) UnmarshalABI(raw []byte) {
+	cs.Manifest.ABI = unmarshalABI(raw)
+}
+
+func unmarshalABI(raw []byte) *ABI {
+	abi := ABI{}
+	err := json.Unmarshal(raw, &abi)
+	if err != nil {
+		log.Panic(err)
+	}
+
+	return &abi
+}
+
+func marshalField(field interface{}) []byte {
 	dat, err := json.Marshal(field)
 	if err != nil {
 		log.Panic(err)

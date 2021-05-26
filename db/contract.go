@@ -42,19 +42,27 @@ func InsertNativeContract(contract *models.ContractState) {
 }
 
 // InsertContract inserts contract state into database.
-func InsertContract(contract *models.ContractState, notiPK uint) {
+func InsertContract(contract *models.ContractState, notiPK uint, contractHash string, newAsset *models.Asset) {
 	mysql.Trans(func(sqlTx *sql.Tx) error {
 		if err := insertContract(sqlTx, contract); err != nil {
 			return err
 		}
-
-		// Sometimes contract transfer can be persisted
-		// earlier than the contract insertion.
-		assetExists, err := assetExists(sqlTx, contract.Hash)
+		// Check if this asset already been added.
+		assetExists, err := assetExists(sqlTx, contractHash)
 		if err != nil {
 			return err
 		}
 
+		if newAsset != nil && !assetExists {
+			if err := insertNewAsset(sqlTx, newAsset); err != nil {
+				return err
+			}
+		}
+
+		// If transfer events of this contract being handled earlier
+		// than the contract task, newAsset will be persisted in
+		// transfer task, the contract info may be incorrect.
+		// E.g. contract creation block index may be bigger than it should be.
 		if assetExists {
 			if err := updateAssetDeployInfo(sqlTx,
 				contract.Hash,
@@ -118,7 +126,7 @@ func insertContract(sqlTx *sql.Tx, contract *models.ContractState) error {
 		contract.Manifest.Groups,
 		contract.Manifest.Features,
 		contract.MarshalSupportedStandards(),
-		contract.Manifest.ABI,
+		contract.MarshalABI(),
 		contract.Manifest.Permissions,
 		contract.Manifest.Trusts,
 		contract.Manifest.Extra,
@@ -176,7 +184,7 @@ func updateContract(sqlTx *sql.Tx, contract *models.ContractState, contractHash 
 		contract.Manifest.Groups,
 		contract.Manifest.Features,
 		contract.MarshalSupportedStandards(),
-		contract.Manifest.ABI,
+		contract.MarshalABI(),
 		contract.Manifest.Permissions,
 		contract.Manifest.Trusts,
 		contract.Manifest.Extra,
@@ -249,6 +257,7 @@ func GetLastContract() *models.ContractState {
 func getContractQueryRow(query []string) *models.ContractState {
 	var contract models.ContractState
 	supportedStandards := []byte{}
+	abi := []byte{}
 
 	err := mysql.QueryRow(mysql.Compose(query), nil,
 		&contract.ID,
@@ -269,7 +278,7 @@ func getContractQueryRow(query []string) *models.ContractState {
 		&contract.Manifest.Groups,
 		&contract.Manifest.Features,
 		&supportedStandards,
-		&contract.Manifest.ABI,
+		&abi,
 		&contract.Manifest.Permissions,
 		&contract.Manifest.Trusts,
 		&contract.Manifest.Extra,
@@ -284,7 +293,8 @@ func getContractQueryRow(query []string) *models.ContractState {
 		log.Panic(err)
 	}
 
-	contract.UnMarshalSupportedStandards(supportedStandards)
+	contract.UnmarshalSupportedStandards(supportedStandards)
+	contract.UnmarshalABI(abi)
 
 	return &contract
 }
@@ -303,6 +313,7 @@ func getContractQuery(query []string) []*models.ContractState {
 	for rows.Next() {
 		var contract models.ContractState
 		supportedStandards := []byte{}
+		abi := []byte{}
 
 		err := rows.Scan(
 			&contract.ID,
@@ -323,7 +334,7 @@ func getContractQuery(query []string) []*models.ContractState {
 			&contract.Manifest.Groups,
 			&contract.Manifest.Features,
 			&supportedStandards,
-			&contract.Manifest.ABI,
+			&abi,
 			&contract.Manifest.Permissions,
 			&contract.Manifest.Trusts,
 			&contract.Manifest.Extra,
@@ -332,7 +343,8 @@ func getContractQuery(query []string) []*models.ContractState {
 			log.Panic(err)
 		}
 
-		contract.UnMarshalSupportedStandards(supportedStandards)
+		contract.UnmarshalSupportedStandards(supportedStandards)
+		contract.UnmarshalABI(abi)
 
 		contracts = append(contracts, &contract)
 	}

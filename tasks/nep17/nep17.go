@@ -2,12 +2,10 @@ package nep17
 
 import (
 	"fmt"
-	"neo3-squirrel/cache/asset"
-	"neo3-squirrel/cache/gas"
+	assetCache "neo3-squirrel/cache/asset"
 	"neo3-squirrel/config"
 	"neo3-squirrel/db"
 	"neo3-squirrel/models"
-	"neo3-squirrel/rpc"
 	"neo3-squirrel/tasks/util"
 	"neo3-squirrel/util/color"
 	"neo3-squirrel/util/convert"
@@ -78,7 +76,7 @@ func fetchNotifications(nextNotiPK uint, transferChan chan<- *notiTransfer) {
 		// Group notifications by hash.
 		notiArrays := groupNotiByHash(notis)
 
-		// Every notiArrat has the same hash.
+		// Every notiArray has the same hash.
 		for _, notis := range notiArrays {
 			// hash and blockIndex are the same across these grouped notis,
 			// so get them from the first noti.
@@ -144,7 +142,7 @@ func handleAssetDestroy(noti *models.Notification) {
 	}
 
 	db.DestroyAsset(contractHash)
-	asset.Remove(contractHash)
+	assetCache.Remove(contractHash)
 }
 
 func parseNEP17Transfer(noti *models.Notification) *models.Transfer {
@@ -162,9 +160,9 @@ func parseNEP17Transfer(noti *models.Notification) *models.Transfer {
 
 	// Get contract info.
 	assetHash := noti.Contract
-	decimals, ok := asset.GetDecimals(assetHash)
+	decimals, ok := assetCache.GetDecimals(assetHash)
 	if !ok {
-		nep17 := queryNEP17AssetInfo(noti, assetHash)
+		nep17 := util.QueryNEP17AssetInfo(noti, assetHash)
 		if nep17 == nil {
 			return nil
 		}
@@ -180,7 +178,7 @@ func parseNEP17Transfer(noti *models.Notification) *models.Transfer {
 
 		db.InsertNewAsset(nep17)
 
-		asset.Update(nep17)
+		assetCache.Update(nep17)
 		decimals = nep17.Decimals
 	}
 
@@ -211,40 +209,4 @@ func parseNEP17Transfer(noti *models.Notification) *models.Transfer {
 	}
 
 	return &transfer
-}
-
-func queryNEP17AssetInfo(noti *models.Notification, contract string) *models.Asset {
-	blockIndex := noti.BlockIndex
-
-	// Get and save contract manifest.
-	contractState := rpc.GetContractState(blockIndex, contract)
-	if contractState == nil {
-		return nil
-	}
-
-	asset := models.Asset{
-		BlockIndex: blockIndex,
-		BlockTime:  noti.BlockTime,
-		TxID:       noti.Hash,
-		Contract:   contract,
-		Name:       contractState.Manifest.Name,
-	}
-
-	bestBlockIndex := rpc.GetBestHeight()
-	ok := util.QueryAssetBasicInfo(blockIndex, &asset)
-	if !ok {
-		log.Warnf("Failed to get NEP17 contract info. Hash=%s(%s), Contract=%s, BlockIndex=%d, BlockTime=%s",
-			noti.Hash, noti.Src, contract, blockIndex, timeutil.FormatBlockTime(noti.BlockTime))
-		return nil
-	}
-
-	if contract == models.GasToken && bestBlockIndex > 0 {
-		gas.CacheGASTotalSupply(uint(bestBlockIndex), asset.TotalSupply)
-	}
-
-	if asset.TotalSupply != nil && asset.TotalSupply.Cmp(config.MaxVal) > 0 {
-		log.Errorf("Asset total supply , asset skipped: %v", asset)
-	}
-
-	return &asset
 }

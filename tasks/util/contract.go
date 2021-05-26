@@ -33,8 +33,8 @@ func GetContractHash(csNoti *models.Notification) (string, bool) {
 	return "0x" + hex.EncodeToString(byteutil.ReverseBytes(contractHash)), true
 }
 
-// QueryAssetBasicInfo gets contract symbol, decimals and totalSupply from fullnode.
-func QueryAssetBasicInfo(minBlockIndex uint, asset *models.Asset) bool {
+// queryAssetBasicInfo gets contract symbol, decimals and totalSupply from fullnode.
+func queryAssetBasicInfo(minBlockIndex uint, asset *models.Asset) bool {
 	contract := asset.Contract
 	var ok bool
 
