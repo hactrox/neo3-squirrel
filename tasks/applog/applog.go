@@ -101,8 +101,8 @@ func fetchApplicationLogs(lastNoti *models.Notification) {
 			for {
 				logInfo := queryResults[i]
 
-				// Wait for at most 30 seconds to crash unless all fullnodes down.
-				if retry > 30*1000 {
+				// Wait for at most 300 seconds to crash unless all fullnodes down.
+				if retry > 300*1000 {
 					if rpc.AllFullnodesDown() {
 						retry = 0
 						for rpc.AllFullnodesDown() {
