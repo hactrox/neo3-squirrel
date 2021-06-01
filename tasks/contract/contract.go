@@ -91,6 +91,10 @@ func handleCsNoti(csNoti *models.Notification) bool {
 }
 
 func insertContract(contractState *models.ContractState, csNoti *models.Notification, contractHash string) {
+	if contractState == nil {
+		return
+	}
+
 	contractState.State = string(models.ContractDeployEvent)
 
 	// If this contract matches NEP-17 token standard.
@@ -104,6 +108,10 @@ func insertContract(contractState *models.ContractState, csNoti *models.Notifica
 }
 
 func updateContract(contractState *models.ContractState, csNotiID uint, contractHash string) {
+	if contractState == nil {
+		return
+	}
+
 	contractState.State = string(models.ContractUpdateEvent)
 	db.UpdateContract(contractState, csNotiID, contractHash)
 }
