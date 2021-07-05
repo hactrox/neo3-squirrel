@@ -132,7 +132,7 @@ func insertContract(sqlTx *sql.Tx, contract *models.ContractState) error {
 		contract.Manifest.Extra,
 	}
 
-	_, err := mysql.Exec(mysql.Compose(query), args...)
+	_, err := sqlTx.Exec(mysql.Compose(query), args...)
 	if err != nil {
 		log.Error(err)
 	}

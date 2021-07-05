@@ -291,13 +291,15 @@ func getNEP17AddrAssetRecord(sqlTx *sql.Tx, address, contract string) (*models.A
 
 	var addrAsset models.AddrAsset
 	var balanceStr string
-	err := mysql.QueryRow(mysql.Compose(query), nil,
+	row := sqlTx.QueryRow(mysql.Compose(query))
+	err := row.Scan(
 		&addrAsset.ID,
 		&addrAsset.Address,
 		&addrAsset.Contract,
 		&balanceStr,
 		&addrAsset.Transfers,
 	)
+
 	if err != nil {
 		if mysql.IsRecordNotFoundError(err) {
 			return nil, nil
