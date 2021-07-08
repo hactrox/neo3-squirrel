@@ -70,11 +70,11 @@ func appLogSyncProgressIndicator(currBlockIndex uint) string {
 		return ""
 	}
 
-	offset := lastNoti.BlockIndex - lastBlockIndex
-	if lastBlockIndex == 0 || offset == 0 {
+	if lastBlockIndex == 0 || lastNoti.BlockIndex <= lastBlockIndex {
 		return ""
 	}
 
+	offset := lastNoti.BlockIndex - lastBlockIndex
 	return fmt.Sprintf("[notificatoins left %d blocks]", offset)
 }
 
@@ -91,10 +91,10 @@ func nep17SyncProgressIndicator(currBlockIndex uint) string {
 		return ""
 	}
 
-	offset := lastNoti.BlockIndex - lastBlockIndex
-	if lastBlockIndex == 0 || offset == 0 {
+	if lastBlockIndex == 0 || lastNoti.BlockIndex <= lastBlockIndex {
 		return ""
 	}
 
+	offset := lastNoti.BlockIndex - lastBlockIndex
 	return fmt.Sprintf("[nep17 tx left %d blocks]", offset)
 }
